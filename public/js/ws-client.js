@@ -53,6 +53,13 @@ export class WSClient {
     this.playerColor = color || 'red';
     if (token) this.token = token;
 
+    const params = new URLSearchParams({
+      room: this.roomCode,
+      name: this.playerName,
+      color: this.playerColor,
+      token: this.token || ''
+    });
+
     let wsUrl;
     const backend = window.__ENV__?.BACKEND_URL;
     if (backend && backend.trim()) {
