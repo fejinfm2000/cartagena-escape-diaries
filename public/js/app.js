@@ -975,7 +975,7 @@ class CartagenaApp {
     if (pirate.position === BOAT_INDEX) return null;
     for (let i = pirate.position + 1; i <= 36; i++) {
       const space = this.gameState.board[i];
-      if (space.symbol === symbol && space.pirates.length < 3) {
+      if (space.symbol === symbol && space.pirates.length === 0) {
         return i;
       }
     }
