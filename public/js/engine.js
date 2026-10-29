@@ -145,6 +145,7 @@ export class CartagenaEngine {
     this.actionsLeft = ACTIONS_PER_TURN;
     this.turnNumber = 1;
     this.winnerId = null;
+    this.escapedWinners = []; // ordered list of players who finished: [{ id, name, color, rank, escapedAt }]
     this.rankings = [];
     this.history = [];
     this.turnHistory = []; // for undo support if enabled
@@ -500,10 +501,8 @@ export class CartagenaEngine {
     const previousPlayerId = player.id;
     this.turnHistory = []; // Clear undo history on turn end
 
-    // Move to next player
-    this.currentPlayerIndex = (this.currentPlayerIndex + 1) % this.players.length;
-    this.actionsLeft = ACTIONS_PER_TURN;
-    this.turnNumber++;
+    // Move to next active player (skipping already escaped players)
+    this._advanceToNextActivePlayer();
     this.version++;
 
     const nextPlayer = this.getCurrentPlayer();
@@ -603,31 +602,106 @@ export class CartagenaEngine {
     this.discardPile = [];
   }
 
+  _advanceToNextActivePlayer() {
+    const unescapedPlayers = this.players.filter(p => !this.escapedWinners.some(w => w.id === p.id));
+    if (unescapedPlayers.length === 0) return;
+
+    let attempts = 0;
+    do {
+      this.currentPlayerIndex = (this.currentPlayerIndex + 1) % this.players.length;
+      attempts++;
+    } while (this.escapedWinners.some(w => w.id === this.players[this.currentPlayerIndex].id) && attempts < this.players.length * 2);
+
+    this.actionsLeft = ACTIONS_PER_TURN;
+    this.turnNumber++;
+    this.turnHistory = [];
+  }
+
   _checkWin(player) {
     const piratesOnBoat = player.pirates.filter(p => p.position === BOAT_INDEX).length;
     if (piratesOnBoat >= this.piratesPerPlayer) {
-      this.status = 'FINISHED';
-      this.winnerId = player.id;
-      this._calculateRankings();
+      if (!this.escapedWinners.some(w => w.id === player.id)) {
+        const rank = this.escapedWinners.length + 1;
+        const winnerEntry = {
+          id: player.id,
+          name: player.name,
+          color: player.color,
+          rank,
+          escapedAt: Date.now()
+        };
+        this.escapedWinners.push(winnerEntry);
+
+        if (!this.winnerId) {
+          this.winnerId = player.id;
+        }
+
+        const escapeEvent = {
+          type: 'PLAYER_ESCAPED',
+          player: winnerEntry,
+          rank,
+          timestamp: Date.now()
+        };
+        this._recordHistory(escapeEvent);
+      }
+
+      // Check if game should conclude: ends when 1 or fewer active players remain unescaped
+      const remainingActive = this.players.filter(p => !this.escapedWinners.some(w => w.id === p.id));
+      if (remainingActive.length <= 1) {
+        this.status = 'FINISHED';
+        this._calculateRankings();
+        this.version++;
+        const event = {
+          type: 'GAME_OVER',
+          winnerId: this.winnerId,
+          rankings: this.rankings,
+          escapedWinners: this.escapedWinners,
+          timestamp: Date.now()
+        };
+        this._recordHistory(event);
+        return true;
+      }
+
+      // 2+ players still remaining: match continues for next podium place!
+      this._advanceToNextActivePlayer();
       this.version++;
+      const nextPlayer = this.getCurrentPlayer();
       const event = {
-        type: 'GAME_OVER',
-        winnerId: player.id,
-        rankings: this.rankings,
+        type: 'TURN_CHANGED',
+        previousPlayerId: player.id,
+        currentPlayerId: nextPlayer.id,
+        turnNumber: this.turnNumber,
+        cardsRefilled: 0,
+        actionsLeft: ACTIONS_PER_TURN,
         timestamp: Date.now()
       };
       this._recordHistory(event);
+      this._checkAndAutoSkipIfNeeded();
       return true;
     }
     return false;
   }
 
   _calculateRankings() {
-    // Ranking criteria:
-    // 1. Most pirates on boat (descending)
-    // 2. Tie-break 1: Furthest advanced remaining pirate position (descending)
-    // 3. Tie-break 2: Fewest cards in hand (ascending)
-    const scoredPlayers = this.players.map(p => {
+    // 1. Players who successfully escaped in order of escape (Rank 1, Rank 2, Rank 3...)
+    const escapedRankings = this.escapedWinners.map(w => {
+      const p = this.players.find(pl => pl.id === w.id);
+      return {
+        id: w.id,
+        name: w.name,
+        color: w.color,
+        rank: w.rank,
+        piratesOnBoat: this.piratesPerPlayer,
+        furthestRemaining: BOAT_INDEX,
+        cardsCount: p ? p.hand.length : 0,
+        isWinner: w.rank === 1,
+        escaped: true
+      };
+    });
+
+    // 2. Remaining players who did not escape
+    const escapedIds = this.escapedWinners.map(w => w.id);
+    const unescapedPlayers = this.players.filter(p => !escapedIds.includes(p.id));
+    const scoredUnescaped = unescapedPlayers.map(p => {
       const onBoat = p.pirates.filter(pir => pir.position === BOAT_INDEX).length;
       const remainingPirates = p.pirates.filter(pir => pir.position !== BOAT_INDEX);
       const furthestRemaining = remainingPirates.length > 0
@@ -640,11 +714,12 @@ export class CartagenaEngine {
         piratesOnBoat: onBoat,
         furthestRemaining,
         cardsCount: p.hand.length,
-        isWinner: p.id === this.winnerId
+        isWinner: false,
+        escaped: false
       };
     });
 
-    scoredPlayers.sort((a, b) => {
+    scoredUnescaped.sort((a, b) => {
       if (b.piratesOnBoat !== a.piratesOnBoat) {
         return b.piratesOnBoat - a.piratesOnBoat;
       }
@@ -654,10 +729,11 @@ export class CartagenaEngine {
       return a.cardsCount - b.cardsCount;
     });
 
-    this.rankings = scoredPlayers.map((sp, idx) => ({
-      rank: idx + 1,
-      ...sp
-    }));
+    scoredUnescaped.forEach((p, idx) => {
+      p.rank = escapedRankings.length + idx + 1;
+    });
+
+    this.rankings = [...escapedRankings, ...scoredUnescaped];
   }
 
   _checkAndAutoSkipIfNeeded() {
@@ -733,6 +809,7 @@ export class CartagenaEngine {
       discardTop: this.discardPile.length > 0 ? this.discardPile[this.discardPile.length - 1] : null,
       discardCount: this.discardPile.length,
       winnerId: this.winnerId,
+      escapedWinners: this.escapedWinners || [],
       rankings: this.rankings,
       board: this.board.map(s => ({
         index: s.index,

@@ -62,12 +62,14 @@ class CartagenaApp {
       tutorial: document.getElementById('tutorial-modal'),
       endGameConfirm: document.getElementById('end-game-confirm-modal'),
       serverConfig: document.getElementById('server-config-modal'),
-      theme: document.getElementById('theme-modal')
+      theme: document.getElementById('theme-modal'),
+      boatRoster: document.getElementById('boat-roster-modal')
     };
 
     // End Game button in header
     this.btnEndGameHeader = document.getElementById('btn-end-game-header');
     this.btnThemeToggle = document.getElementById('theme-toggle-btn');
+    this.btnThemeQuickToggle = document.getElementById('theme-quick-toggle');
 
     // Atmosphere & Theme Customization (§4)
     this.currentTheme = localStorage.getItem('cartagena_theme') || 'midnight';
@@ -190,7 +192,7 @@ class CartagenaApp {
       e.preventDefault();
       const name = document.getElementById('bot-player-name').value.trim() || 'Captain';
       const difficulty = document.querySelector('input[name="bot-difficulty"]:checked')?.value || 'medium';
-      const botCount = parseInt(document.getElementById('bot-count-select').value, 10) || 2;
+      const botCount = parseInt(document.getElementById('bot-count-select').value, 10) || 1;
       await this._startCustomSolo({ name, difficulty, botCount, hostColor: this.preferredColor || 'red' });
     });
 
@@ -524,6 +526,14 @@ class CartagenaApp {
       this.audio.playPop();
     });
 
+    // 1-Click Light / Dark Quick Toggle
+    this.btnThemeQuickToggle?.addEventListener('click', () => {
+      const nextTheme = this.currentTheme === 'light' ? 'dark' : 'light';
+      this._applyTheme(nextTheme);
+      this.audio.playHop();
+      this._showToast(`Atmosphere switched to: ${nextTheme === 'light' ? '☀️ Port Royal (Light)' : '🌙 Fortress (Dark)'}`);
+    });
+
     document.querySelectorAll('#theme-options-grid .theme-card').forEach(card => {
       card.addEventListener('click', () => {
         const themeId = card.getAttribute('data-theme');
@@ -571,8 +581,27 @@ class CartagenaApp {
       source.on('STATE_UPDATE', (data) => {
         this.isHost = data.hostId === this.myPlayerId;
         if (data.settings) this.roomSettings = data.settings;
+        const prevEscapedIds = new Set((this.gameState?.escapedWinners || []).map(w => w.id));
         const prevPlayerId = this.gameState?.currentPlayerId;
         this.gameState = data.state;
+
+        // Announce new podium escapees (1st, 2nd, 3rd Winner)
+        if (data.state.escapedWinners && data.state.escapedWinners.length > 0) {
+          data.state.escapedWinners.forEach(w => {
+            if (!prevEscapedIds.has(w.id)) {
+              const isMe = w.id === this.myPlayerId;
+              const rankName = w.rank === 1 ? '🥇 1st Place Winner' : w.rank === 2 ? '🥈 2nd Place Winner' : w.rank === 3 ? '🥉 3rd Place Winner' : `🏅 #${w.rank} Escaped`;
+              if (isMe) {
+                this.audio.playCannon();
+                this.audio.playFanfare();
+                this._showToast(`🎉 HUZZAH! You won ${rankName}! Your crew is safe on the rowboat!`);
+              } else {
+                this.audio.playCannon();
+                this._showToast(`⛵ Captain ${w.name} secured ${rankName}! Race continues for remaining crew!`);
+              }
+            }
+          });
+        }
 
         // Check view transition
         if (data.state.status === 'IN_PROGRESS' && this.currentView !== 'game') {
@@ -732,7 +761,7 @@ class CartagenaApp {
   }
 
   _startQuickSolo() {
-    this._startCustomSolo({ name: 'You (Captain)', difficulty: 'medium', botCount: 2 });
+    this._startCustomSolo({ name: 'You (Captain)', difficulty: 'medium', botCount: 1 });
   }
 
   _switchView(viewName) {
@@ -811,6 +840,11 @@ class CartagenaApp {
       document.body.setAttribute('data-theme', themeId);
     }
     localStorage.setItem('cartagena_theme', themeId);
+
+    if (this.btnThemeQuickToggle) {
+      this.btnThemeQuickToggle.textContent = themeId === 'light' ? '☀️' : '🌙';
+      this.btnThemeQuickToggle.title = themeId === 'light' ? 'Current: Light. Click for Dark Theme' : 'Current: Dark. Click for Light Theme';
+    }
 
     // Update active state in theme modal cards
     document.querySelectorAll('#theme-options-grid .theme-card').forEach(card => {
@@ -905,10 +939,17 @@ class CartagenaApp {
 
     const isMyTurn = this.gameState.currentPlayerId === this.myPlayerId;
     const activePlayer = this.gameState.players.find(p => p.id === this.gameState.currentPlayerId);
+    const myEscape = (this.gameState.escapedWinners || []).find(w => w.id === this.myPlayerId);
 
     // Update Turn Banner safely without erasing action-pips or toggle button
     const turnHighlight = this.turnBanner.querySelector('.turn-highlight');
-    if (isMyTurn) {
+    if (myEscape) {
+      this.turnBanner.className = 'turn-banner other-turn-banner';
+      if (turnHighlight) {
+        const medal = myEscape.rank === 1 ? '🥇 1st Place Winner' : myEscape.rank === 2 ? '🥈 2nd Place Winner' : '🥉 3rd Place Winner';
+        turnHighlight.innerHTML = `🎉 <strong>${medal}!</strong> Your crew is aboard the rowboat! Watching remaining captains race...`;
+      }
+    } else if (isMyTurn) {
       this.turnBanner.className = 'turn-banner my-turn-banner';
       if (turnHighlight) {
         turnHighlight.innerHTML = `⭐ IT'S YOUR TURN! <span class="turn-instructions" style="font-size:0.9rem; font-family:var(--font-diary); color:#F2E2BA; font-weight:normal; margin-left:0.4rem;">${this.actionMode === 'BACKWARD' ? 'Retreat pirate for cards' : 'Play card & leap forward'}</span>`;
@@ -944,6 +985,57 @@ class CartagenaApp {
     this._updateActionBar();
     this._updateNextStepInstructions();
     this._updateCrewLocator();
+  }
+
+  _showBoatRoster() {
+    if (!this.gameState || !this.gameState.players) return;
+    const listEl = document.getElementById('boat-roster-list');
+    if (!listEl) return;
+    listEl.innerHTML = '';
+
+    const escapedWinners = this.gameState.escapedWinners || [];
+    const targetCount = this.gameState.piratesPerPlayer || (this.gameState.settings?.quickGame ? 4 : 6);
+
+    // Sort players: finished winners first by rank, then by boatCount descending
+    const sorted = [...this.gameState.players].sort((a, b) => {
+      const aWinner = escapedWinners.find(w => w.id === a.id);
+      const bWinner = escapedWinners.find(w => w.id === b.id);
+      if (aWinner && bWinner) return aWinner.rank - bWinner.rank;
+      if (aWinner) return -1;
+      if (bWinner) return 1;
+      const aBoat = (a.pirates || []).filter(p => p.position === BOAT_INDEX).length;
+      const bBoat = (b.pirates || []).filter(p => p.position === BOAT_INDEX).length;
+      return bBoat - aBoat;
+    });
+
+    sorted.forEach((player) => {
+      const winner = escapedWinners.find(w => w.id === player.id);
+      const onBoat = (player.pirates || []).filter(p => p.position === BOAT_INDEX).length;
+      const total = player.pirates?.length || targetCount;
+      const isMe = player.id === this.myPlayerId;
+      const rankTag = winner
+        ? (winner.rank === 1 ? '🥇 1st Place Winner' : winner.rank === 2 ? '🥈 2nd Place Winner' : winner.rank === 3 ? '🥉 3rd Place Winner' : `🏅 #${winner.rank} Escaped`)
+        : (onBoat === total ? '✅ Fully Boarded' : `${onBoat}/${total} Boarded`);
+
+      const colMeta = PLAYER_COLORS.find(c => c.id === player.color) || { hex: player.colorHex || '#D64545' };
+
+      const row = document.createElement('div');
+      row.style.cssText = `display:flex; align-items:center; justify-content:space-between; padding:0.65rem 0.9rem; border-radius:8px; background:${isMe ? 'rgba(218, 165, 32, 0.15)' : 'rgba(0, 0, 0, 0.04)'}; border:1.5px solid ${isMe ? '#DAA520' : 'rgba(0, 0, 0, 0.08)'};`;
+
+      row.innerHTML = `
+        <div style="display:flex; align-items:center; gap:0.6rem;">
+          <span style="display:inline-block; width:14px; height:14px; border-radius:50%; background:${colMeta.hex}; border:1.5px solid #333;"></span>
+          <strong style="color:#2D1E12; font-size:0.95rem;">${player.name} ${isMe ? '<span style="font-size:0.75rem; color:#DAA520; font-weight:normal;">(You)</span>' : ''}</strong>
+        </div>
+        <div style="display:flex; align-items:center; gap:0.5rem;">
+          <span style="font-weight:700; font-size:0.9rem; color:${winner ? '#B8860B' : '#5C3B1E'};">${rankTag}</span>
+          <span style="font-size:0.82rem; background:rgba(0,0,0,0.06); padding:2px 7px; border-radius:10px; font-weight:600;">⛵ ${onBoat}/${total}</span>
+        </div>
+      `;
+      listEl.appendChild(row);
+    });
+
+    this._showModal('boatRoster');
   }
 
   _updateCrewLocator() {
@@ -1048,17 +1140,23 @@ class CartagenaApp {
       const onPath = pirates.filter(pir => pir.position > JAIL_INDEX && pir.position < BOAT_INDEX);
       const pathLocs = onPath.map(pir => `#${pir.position}`).join(', ');
 
+      const escapeWinner = (this.gameState.escapedWinners || []).find(w => w.id === p.id);
+      const podiumBadge = escapeWinner
+        ? `<span class="stat-badge winner-podium-badge" style="background: rgba(218,165,32,0.25); color: #B8860B; font-weight: 700; border: 1px solid #DAA520;">${escapeWinner.rank === 1 ? '🥇 1st' : escapeWinner.rank === 2 ? '🥈 2nd' : '🥉 3rd'}</span>`
+        : '';
+
       const card = document.createElement('div');
-      card.className = `opponent-card ${isCurrent ? 'active-turn' : ''} ${isMe ? 'is-self' : ''}`;
+      card.className = `opponent-card ${isCurrent ? 'active-turn' : ''} ${isMe ? 'is-self' : ''} ${escapeWinner ? 'escaped-winner-card' : ''}`;
       card.title = `Click to locate & beacon ${p.name}'s crew across the tunnel`;
       card.style.cursor = 'pointer';
       card.innerHTML = `
         <div class="opponent-avatar" style="border-color: ${colMeta.hex}; background-color: ${colMeta.hex}22;">
-          <span style="color: ${colMeta.hex}">🏴‍☠️</span>
+          <span style="color: ${colMeta.hex}">${escapeWinner ? (escapeWinner.rank === 1 ? '🥇' : escapeWinner.rank === 2 ? '🥈' : '🥉') : '🏴‍☠️'}</span>
         </div>
         <div class="opponent-details">
           <span class="opponent-name">${p.name} ${isMe ? '(You)' : ''}</span>
           <div class="opponent-stats">
+            ${podiumBadge}
             <span class="stat-badge" title="Cards in hand">🃏 ${p.cardCount}</span>
             <span class="stat-badge" title="Pirates in Jail">🔒 ${inJail}</span>
             <span class="stat-badge" title="Pirates in tunnel: ${pathLocs || 'none'}">🏃 ${onPath.length}</span>
@@ -1175,8 +1273,16 @@ class CartagenaApp {
     // If a space is tapped while a pirate and card are selected and matches target
     if (this.selectedPirateId && this.actionMode === 'FORWARD' && this.selectedCard) {
       this._executeForwardMove(this.selectedPirateId, this.selectedCard.id);
+      return;
     } else if (this.selectedPirateId && this.actionMode === 'BACKWARD') {
       this._executeBackwardMove(this.selectedPirateId);
+      return;
+    }
+
+    // Tapping the Escape Rowboat opens the Roster Modal (§2)
+    if (spaceIndex === BOAT_INDEX) {
+      this._showBoatRoster();
+      this.audio.playPop();
     }
   }
 
@@ -1453,8 +1559,9 @@ class CartagenaApp {
     const isWinner = this.myPlayerId === state.winnerId;
     const winner = state.players.find(p => p.id === state.winnerId);
     const myPlayer = state.players.find(p => p.id === this.myPlayerId);
+    const myEscape = (state.escapedWinners || []).find(w => w.id === this.myPlayerId);
 
-    if (isWinner) {
+    if (isWinner || myEscape) {
       this.audio.playCannon();
       this.audio.playFanfare();
     } else {
@@ -1469,16 +1576,38 @@ class CartagenaApp {
     const personalCard = document.getElementById('personal-result-card');
 
     if (dialog && badge && icon && headline && subline && personalCard) {
-      if (isWinner) {
+      if (isWinner || (myEscape && myEscape.rank === 1)) {
         dialog.className = 'parchment-modal-dialog gameover-dialog victory-theme';
         badge.className = 'gameover-outcome-badge victory-badge';
         icon.textContent = '👑 ⛵';
-        headline.textContent = '🏆 GLORIOUS VICTORY! YOU ESCAPED!';
-        subline.textContent = 'Huzzah! All your crew boarded the sloop rowboat to freedom!';
+        headline.textContent = '🏆 1st PLACE VICTORY! CARTAGENA CONQUEROR!';
+        subline.textContent = 'Huzzah! All your crew boarded the sloop rowboat first to freedom!';
         personalCard.className = 'personal-result-card victory-card';
         personalCard.innerHTML = `
-          <div class="result-badge">🥇 1st Place - Cartagena Conqueror</div>
-          <div class="result-desc">You successfully smuggled your entire crew through the 36-space tunnel onto the rowboat. Tortuga and glory await!</div>
+          <div class="result-badge">🥇 1st Place Winner - Gold Laurels</div>
+          <div class="result-desc">You successfully smuggled your entire crew through the 36-space tunnel onto the rowboat ahead of everyone else. Tortuga and glory await!</div>
+        `;
+      } else if (myEscape && myEscape.rank === 2) {
+        dialog.className = 'parchment-modal-dialog gameover-dialog victory-theme';
+        badge.className = 'gameover-outcome-badge victory-badge';
+        icon.textContent = '🥈 ⛵';
+        headline.textContent = '🥈 2nd PLACE WINNER! DARING ESCAPE!';
+        subline.textContent = 'Splendid rowing! All your crew made it safely onto the rowboat in 2nd place!';
+        personalCard.className = 'personal-result-card victory-card';
+        personalCard.innerHTML = `
+          <div class="result-badge">🥈 2nd Place Winner - Silver Laurels</div>
+          <div class="result-desc">You successfully guided your complete crew onto the escape rowboat right behind the leader. Freedom is yours!</div>
+        `;
+      } else if (myEscape && myEscape.rank === 3) {
+        dialog.className = 'parchment-modal-dialog gameover-dialog victory-theme';
+        badge.className = 'gameover-outcome-badge victory-badge';
+        icon.textContent = '🥉 ⛵';
+        headline.textContent = '🥉 3rd PLACE WINNER! PODIUM FINISH!';
+        subline.textContent = 'Courageous flight! You secured the 3rd podium place to freedom!';
+        personalCard.className = 'personal-result-card victory-card';
+        personalCard.innerHTML = `
+          <div class="result-badge">🥉 3rd Place Winner - Bronze Laurels</div>
+          <div class="result-desc">You claimed the final winner's podium spot and escaped the Spanish fortress with your full crew!</div>
         `;
       } else {
         const myRank = (state.rankings || []).find(r => r.id === this.myPlayerId)?.rank || 2;

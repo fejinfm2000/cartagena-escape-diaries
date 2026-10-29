@@ -25,6 +25,91 @@
   --shadow-gold: 0 0 16px rgba(224, 168, 46, 0.45);
 }
 
+/* Explicit Light & Dark Themes */
+body[data-theme="light"] {
+  --color-bg-deep: #F3EBD8;
+  --color-ocean-teal: #2D6B7A;
+  --color-parchment: #FFFFFF;
+  --color-parchment-dark: #D4C3A3;
+  --color-parchment-card: #FFFFFF;
+  --color-ink: #1F1914;
+  --color-gold: #B8860B;
+  --color-gold-hover: #D4A017;
+  --color-surface-glass: rgba(255, 255, 255, 0.95);
+  background-color: #EFE6D5;
+  background-image: 
+    radial-gradient(circle at 50% 10%, #FFFFFF 0%, transparent 60%),
+    radial-gradient(circle at 10% 90%, #E3D6BC 0%, transparent 50%),
+    linear-gradient(180deg, #F8F2E6 0%, #EFE5D0 50%, #E5DAC0 100%);
+  color: #1F1914;
+}
+
+body[data-theme="light"] .app-header {
+  background: rgba(255, 255, 255, 0.94);
+  border-bottom: 2px solid #D4C3A3;
+}
+
+body[data-theme="light"] .brand-title {
+  color: #8C6415;
+}
+
+body[data-theme="light"] .brand-subtitle {
+  color: #5C3B1E;
+}
+
+body[data-theme="light"] .turn-banner {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: #B8860B;
+  color: #1F1914;
+}
+
+body[data-theme="light"] .turn-highlight {
+  color: #8C6415;
+}
+
+body[data-theme="light"] .turn-instructions {
+  color: #3B2A1A;
+}
+
+body[data-theme="light"] .mobile-board-quick-nav {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-color: #B8860B !important;
+}
+
+body[data-theme="light"] .m-nav-btn {
+  background: rgba(0, 0, 0, 0.05);
+  border-color: rgba(0, 0, 0, 0.15);
+  color: #1F1914;
+}
+
+body[data-theme="light"] .mobile-turn-instruction {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-color: #B8860B !important;
+  color: #8C6415 !important;
+}
+
+body[data-theme="light"] .btn-action {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: #B8860B;
+  color: #1F1914;
+}
+
+body[data-theme="dark"], body[data-theme="midnight"] {
+  --color-bg-deep: #080D14;
+  --color-ocean-teal: #14505C;
+  --color-parchment: #F2E2BA;
+  --color-parchment-dark: #D9BF86;
+  --color-parchment-card: #FAF4E3;
+  --color-ink: #3B2A1A;
+  --color-gold: #E5B93B;
+  --color-gold-hover: #F5CC5B;
+  --color-surface-glass: rgba(11, 31, 42, 0.88);
+  background-image: 
+    radial-gradient(circle at 50% 10%, #0F2A38 0%, transparent 60%),
+    radial-gradient(circle at 10% 90%, #050B10 0%, transparent 50%),
+    linear-gradient(180deg, #03060A 0%, #080D14 50%, #020406 100%);
+}
+
 /* Atmospheric Pirate Themes (§4) */
 body[data-theme="caribbean"] {
   --color-bg-deep: #082E38;

@@ -300,3 +300,71 @@ test('Privacy projection: getStateView() only exposes hand of requesting player'
   assert.equal(publicSpectatorView.players[0].hand, undefined);
   assert.equal(publicSpectatorView.players[1].hand, undefined);
 });
+
+test('Podium Progression: In a 3-player match, 1st escapes and game continues for 2nd & 3rd place', () => {
+  const engine = new CartagenaEngine({ seed: 555, quickGame: true }); // 4 pirates per player
+  const p1 = engine.addPlayer({ id: 'p1', name: 'Alice' });
+  const p2 = engine.addPlayer({ id: 'p2', name: 'Bob' });
+  const p3 = engine.addPlayer({ id: 'p3', name: 'Charlie' });
+  engine.start();
+
+  // Put p1 on the verge of escape (3 already on boat, 1 at 35)
+  p1.pirates[0].position = BOAT_INDEX;
+  p1.pirates[1].position = BOAT_INDEX;
+  p1.pirates[2].position = BOAT_INDEX;
+  p1.pirates[3].position = 35;
+  engine.board[BOAT_INDEX].pirates.push(p1.pirates[0].id, p1.pirates[1].id, p1.pirates[2].id);
+  engine.board[35].pirates.push(p1.pirates[3].id);
+
+  const lastSym = engine.board[36].symbol;
+  const freeSym = SYMBOLS.find(s => s !== lastSym);
+  p1.hand = [{ id: 'card_p1_win', symbol: freeSym }];
+
+  const res1 = engine.playForward({
+    playerId: 'p1',
+    pirateId: p1.pirates[3].id,
+    cardId: 'card_p1_win'
+  });
+
+  // p1 escaped!
+  assert.equal(res1.won, true);
+  // Match is still IN_PROGRESS because p2 and p3 still need to play!
+  assert.equal(engine.status, 'IN_PROGRESS');
+  assert.equal(engine.winnerId, 'p1');
+  assert.equal(engine.escapedWinners.length, 1);
+  assert.equal(engine.escapedWinners[0].id, 'p1');
+  assert.equal(engine.escapedWinners[0].rank, 1);
+  // Current turn should have moved to p2!
+  assert.equal(engine.getCurrentPlayer().id, 'p2');
+
+  // Now put p2 on the verge of escape
+  p2.pirates[0].position = BOAT_INDEX;
+  p2.pirates[1].position = BOAT_INDEX;
+  p2.pirates[2].position = BOAT_INDEX;
+  p2.pirates[3].position = 35;
+  engine.board[BOAT_INDEX].pirates.push(p2.pirates[0].id, p2.pirates[1].id, p2.pirates[2].id);
+  engine.board[35].pirates.push(p2.pirates[3].id);
+  p2.hand = [{ id: 'card_p2_win', symbol: freeSym }];
+
+  const res2 = engine.playForward({
+    playerId: 'p2',
+    pirateId: p2.pirates[3].id,
+    cardId: 'card_p2_win'
+  });
+
+  // p2 escaped! Now only 1 unescaped player (p3) remains!
+  assert.equal(res2.won, true);
+  assert.equal(engine.status, 'FINISHED');
+  assert.equal(engine.escapedWinners.length, 2);
+  assert.equal(engine.escapedWinners[1].id, 'p2');
+  assert.equal(engine.escapedWinners[1].rank, 2);
+
+  // Check complete final rankings:
+  // 1st: p1 (Alice), 2nd: p2 (Bob), 3rd: p3 (Charlie, left behind)
+  assert.equal(engine.rankings[0].id, 'p1');
+  assert.equal(engine.rankings[0].rank, 1);
+  assert.equal(engine.rankings[1].id, 'p2');
+  assert.equal(engine.rankings[1].rank, 2);
+  assert.equal(engine.rankings[2].id, 'p3');
+  assert.equal(engine.rankings[2].rank, 3);
+});

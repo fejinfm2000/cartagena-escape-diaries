@@ -379,31 +379,36 @@ export class BoardRenderer {
     `;
   }
 
+  _escapeXml(str) {
+    return String(str || '').replace(/[&<>"']/g, m => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[m]));
+  }
+
   _renderBoatAreaHorizontal(boatSpace) {
     const coord = this._getCoordinatesHorizontal(BOAT_INDEX);
-    const pirates = boatSpace.pirates || [];
 
     return `
-      <g class="boat-area" id="space-group-37" data-space-index="37" transform="translate(${coord.x}, ${coord.y})">
+      <g class="boat-area" id="space-group-37" data-space-index="37" transform="translate(${coord.x}, ${coord.y})" style="cursor: pointer;">
         <!-- Sea Water Lagoon -->
-        <ellipse cx="0" cy="0" rx="65" ry="120" fill="url(#water-gradient)" stroke="#14505C" stroke-width="3"/>
+        <ellipse cx="0" cy="0" rx="75" ry="140" fill="url(#water-gradient)" stroke="#14505C" stroke-width="3"/>
 
         <!-- Wooden Rowboat silhouette -->
-        <path d="M -38 -80 Q -52 0 -38 80 Q 0 105 38 80 Q 52 0 38 -80 Q 0 -105 -38 -80 Z" 
+        <path d="M -50 -115 Q -72 0 -50 115 Q 0 145 50 115 Q 72 0 50 -115 Q 0 -145 -50 -115 Z" 
               fill="#5C3B1E" stroke="#E0A82E" stroke-width="2.5" filter="url(#parchment-shadow)"/>
         
         <!-- Oars -->
-        <line x1="-50" y1="-28" x2="-75" y2="-55" stroke="#8B5A2B" stroke-width="3" stroke-linecap="round"/>
-        <line x1="50" y1="-28" x2="75" y2="-55" stroke="#8B5A2B" stroke-width="3" stroke-linecap="round"/>
-        <line x1="-50" y1="28" x2="-75" y2="55" stroke="#8B5A2B" stroke-width="3" stroke-linecap="round"/>
-        <line x1="50" y1="28" x2="75" y2="55" stroke="#8B5A2B" stroke-width="3" stroke-linecap="round"/>
+        <line x1="-55" y1="-40" x2="-85" y2="-75" stroke="#8B5A2B" stroke-width="3" stroke-linecap="round"/>
+        <line x1="55" y1="-40" x2="85" y2="-75" stroke="#8B5A2B" stroke-width="3" stroke-linecap="round"/>
+        <line x1="-55" y1="40" x2="-85" y2="75" stroke="#8B5A2B" stroke-width="3" stroke-linecap="round"/>
+        <line x1="55" y1="40" x2="85" y2="75" stroke="#8B5A2B" stroke-width="3" stroke-linecap="round"/>
 
         <!-- Title -->
-        <text x="0" y="-60" text-anchor="middle" fill="#E0A82E" font-family="'Pirata One', cursive" font-size="15">ESCAPE BOAT</text>
+        <text x="0" y="-95" text-anchor="middle" fill="#E0A82E" font-family="'Pirata One', cursive" font-size="15">ESCAPE BOAT</text>
 
-        <!-- Escaped Pirates on Boat -->
-        <g class="pirates-container boat-pirates" transform="translate(0, 10)">
-          ${this._renderBoatPirates(pirates, false)}
+        <!-- Escaped Pirates Grouped By Player -->
+        <g class="pirates-container boat-pirates">
+          ${this._renderBoatPiratesByPlayer(false)}
         </g>
       </g>
     `;
@@ -411,94 +416,95 @@ export class BoardRenderer {
 
   _renderBoatAreaVertical(boatSpace) {
     const coord = this._getCoordinatesVertical(BOAT_INDEX);
-    const pirates = boatSpace.pirates || [];
 
     return `
-      <g class="boat-area" id="space-group-37" data-space-index="37" transform="translate(${coord.x}, ${coord.y})">
-        <rect x="-165" y="-60" width="330" height="120" rx="14" fill="#14505C" stroke="#0B1F2A" stroke-width="3"/>
+      <g class="boat-area" id="space-group-37" data-space-index="37" transform="translate(${coord.x}, ${coord.y})" style="cursor: pointer;">
+        <!-- Sea Water Lagoon for mobile -->
+        <rect x="-170" y="-68" width="340" height="142" rx="16" fill="#14505C" stroke="#0B1F2A" stroke-width="3"/>
         
-        <path d="M -135 -20 Q 0 -35 135 -20 Q 145 15 125 35 Q 0 45 -125 35 Q -145 15 -135 -20 Z" 
+        <!-- Wooden rowboat hull -->
+        <path d="M -155 -18 Q 0 -36 155 -18 Q 165 35 145 68 Q 0 85 -145 68 Q -165 35 -155 -18 Z" 
               fill="#5C3B1E" stroke="#E0A82E" stroke-width="2.5"/>
 
-        <text x="0" y="-36" text-anchor="middle" fill="#E0A82E" font-family="'Pirata One', cursive" font-size="16">ROWBOAT TO FREEDOM (ESCAPE!)</text>
+        <text x="0" y="-46" text-anchor="middle" fill="#E0A82E" font-family="'Pirata One', cursive" font-size="16">⛵ ROWBOAT TO FREEDOM (ESCAPE!)</text>
 
-        <g class="pirates-container boat-pirates" transform="translate(0, 10)">
-          ${this._renderBoatPirates(pirates, true)}
+        <!-- Escaped Pirates Grouped By Player Berth on Mobile -->
+        <g class="pirates-container boat-pirates">
+          ${this._renderBoatPiratesByPlayer(true)}
         </g>
       </g>
     `;
   }
 
-  _renderPiratesOnSpace(pirateIds, isVertical = false) {
-    if (!pirateIds || pirateIds.length === 0) return '';
-    const count = pirateIds.length;
+  _renderBoatPiratesByPlayer(isVertical = false) {
+    const players = this.currentState?.players || [];
+    const target = this.currentState?.piratesPerPlayer || 6;
+    if (players.length === 0) return '';
 
-    // Up to 3 pirates neatly docked across the bottom half of the rectangle card
-    const offsets = count === 1 ? [{ x: 0, y: 18 }] :
-                    count === 2 ? [{ x: -24, y: 18 }, { x: 24, y: 18 }] :
-                    [{ x: -28, y: 18 }, { x: 0, y: 18 }, { x: 28, y: 18 }];
-    const size = count === 3 ? 11.5 : count === 2 ? 12.5 : 13;
-
-    return pirateIds.map((pid, idx) => {
-      const pos = offsets[idx] || { x: 0, y: 18 };
-      return this._renderPirateToken(pid, pos.x, pos.y, size);
-    }).join('');
-  }
-
-  _renderJailPirates(pirateIds, isVertical = false) {
-    if (!pirateIds || pirateIds.length === 0) return '';
     if (isVertical) {
-      // Mobile vertical jail: 6 columns across width 330
-      const cols = 6;
-      const spacingX = 46;
-      const spacingY = 32;
-      return pirateIds.map((pid, idx) => {
-        const row = Math.floor(idx / cols);
-        const col = idx % cols;
-        const x = (col - (cols - 1) / 2) * spacingX;
-        const y = (row - 0.5) * spacingY;
-        return this._renderPirateToken(pid, x, y, 14);
+      // Mobile vertical: render player berth lanes across the 320px boat width
+      const pCount = Math.max(1, Math.min(players.length, 5));
+      const colWidth = 310 / pCount;
+      return players.map((player, pIdx) => {
+        const pPiratesOnBoat = (player.pirates || []).filter(p => p.position === BOAT_INDEX);
+        const colMeta = PLAYER_COLORS.find(c => c.id === player.color) || { hex: '#D64545' };
+        const xOffset = -150 + pIdx * colWidth + colWidth / 2;
+        const winner = (this.currentState?.escapedWinners || []).find(w => w.id === player.id);
+        const rankMedal = winner ? (winner.rank === 1 ? '🥇 1st' : winner.rank === 2 ? '🥈 2nd' : '🥉 3rd') : null;
+
+        const tokensSvg = pPiratesOnBoat.map((pirate, idx) => {
+          const row = Math.floor(idx / 3);
+          const col = idx % 3;
+          const px = xOffset + (col - 1) * 20;
+          const py = 6 + row * 22;
+          return this._renderPirateToken(pirate.id, px, py, 9.5, true);
+        }).join('');
+
+        return `
+          <g class="boat-player-berth" data-player-id="${player.id}">
+            <!-- Player mini flag / name header -->
+            <rect x="${xOffset - colWidth/2 + 2}" y="-34" width="${colWidth - 4}" height="18" rx="4" fill="${colMeta.hex}" stroke="#FFFFFF" stroke-width="1" opacity="0.95"/>
+            <text x="${xOffset}" y="-22" text-anchor="middle" fill="#FFFFFF" font-family="'Inter', sans-serif" font-size="8.5" font-weight="bold">
+              ${rankMedal || `${this._escapeXml(player.name.substring(0, 7))} (${pPiratesOnBoat.length}/${target})`}
+            </text>
+            <!-- Docked pirate tokens for this specific crew -->
+            ${tokensSvg}
+          </g>
+        `;
       }).join('');
     } else {
-      // Laptop horizontal jail: 3 columns across width 120
-      const cols = 3;
-      const spacingX = 32;
-      const spacingY = 30;
-      return pirateIds.map((pid, idx) => {
-        const row = Math.floor(idx / cols);
-        const col = idx % cols;
-        const x = (col - (cols - 1) / 2) * spacingX;
-        const y = (row - 2) * spacingY + 10;
-        return this._renderPirateToken(pid, x, y, 13);
+      // Desktop horizontal: vertical rows for each player
+      const rowHeight = 170 / Math.max(1, players.length);
+      return players.map((player, pIdx) => {
+        const pPiratesOnBoat = (player.pirates || []).filter(p => p.position === BOAT_INDEX);
+        const colMeta = PLAYER_COLORS.find(c => c.id === player.color) || { hex: '#D64545' };
+        const yOffset = -65 + pIdx * rowHeight + rowHeight / 2;
+        const winner = (this.currentState?.escapedWinners || []).find(w => w.id === player.id);
+        const rankMedal = winner ? (winner.rank === 1 ? '🥇' : winner.rank === 2 ? '🥈' : '🥉') : null;
+
+        const tokensSvg = pPiratesOnBoat.map((pirate, idx) => {
+          const px = -8 + idx * 22;
+          const py = yOffset;
+          return this._renderPirateToken(pirate.id, px, py, 10.5, true);
+        }).join('');
+
+        return `
+          <g class="boat-player-berth" data-player-id="${player.id}">
+            <!-- Player badge on the left -->
+            <rect x="-65" y="${yOffset - 10}" width="48" height="20" rx="4" fill="${colMeta.hex}" stroke="#FFFFFF" stroke-width="1" opacity="0.95"/>
+            <text x="-41" y="${yOffset + 4}" text-anchor="middle" fill="#FFFFFF" font-family="'Inter', sans-serif" font-size="8.5" font-weight="bold">
+              ${rankMedal || `${pPiratesOnBoat.length}/${target}`}
+            </text>
+            <!-- Tokens on the right -->
+            ${tokensSvg}
+          </g>
+        `;
       }).join('');
     }
   }
 
   _renderBoatPirates(pirateIds, isVertical = false) {
-    if (!pirateIds || pirateIds.length === 0) return '';
-    if (isVertical) {
-      const cols = 6;
-      const spacingX = 44;
-      const spacingY = 30;
-      return pirateIds.map((pid, idx) => {
-        const row = Math.floor(idx / cols);
-        const col = idx % cols;
-        const x = (col - (cols - 1) / 2) * spacingX;
-        const y = (row - 0.2) * spacingY;
-        return this._renderPirateToken(pid, x, y, 13, true);
-      }).join('');
-    } else {
-      const cols = 2;
-      const spacingX = 30;
-      const spacingY = 28;
-      return pirateIds.map((pid, idx) => {
-        const row = Math.floor(idx / cols);
-        const col = idx % cols;
-        const x = (col - (cols - 1) / 2) * spacingX;
-        const y = (row - 1.5) * spacingY;
-        return this._renderPirateToken(pid, x, y, 12.5, true);
-      }).join('');
-    }
+    return this._renderBoatPiratesByPlayer(isVertical);
   }
 
   _renderPirateToken(pirateId, x, y, size = 18, isOnBoat = false) {

@@ -51,7 +51,7 @@ export class LocalCoordinator {
     }
   }
 
-  startSoloGame({ hostName = 'Captain', hostColor = 'red', difficulty = 'medium', botCount = 2 }) {
+  startSoloGame({ hostName = 'Captain', hostColor = 'red', difficulty = 'medium', botCount = 1 }) {
     if (this.botTimer) clearTimeout(this.botTimer);
 
     this.isPassAndPlay = false;
