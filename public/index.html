@@ -70,6 +70,12 @@
               <button class="btn btn-secondary" id="btn-show-pass-play" style="background: linear-gradient(180deg, #8E5BC9 0%, #683BA6 100%); border-color: #4C2680; color: #FFF;">📱 Local Pass &amp; Play (Single Device)</button>
               <button class="btn btn-outline" id="btn-how-to-play">📖 Open Illustrated Tutorial</button>
             </div>
+            
+            <!-- Online Server Status Indicator & Quick Connector -->
+            <div class="server-status-pill" id="server-status-pill" style="margin-top: 0.8rem; font-size: 0.85rem; color: #5C3B1E; display: flex; align-items: center; justify-content: space-between; background: rgba(0,0,0,0.06); padding: 0.4rem 0.8rem; border-radius: 6px; border: 1px solid rgba(0,0,0,0.08);">
+              <span id="server-status-text">🌐 Cloud Server: Connecting...</span>
+              <button id="btn-config-server" class="link-btn" style="background: none; border: none; color: #8E5BC9; font-weight: 700; cursor: pointer; text-decoration: underline; font-size: 0.85rem;" title="Configure Render / Cloud Server URL">⚙️ Cloud Server</button>
+            </div>
           </div>
 
           <!-- RIGHT CARD: DIRECT RULES & CONDITIONS (ALWAYS VISIBLE ON FIRST PAGE) -->
@@ -594,6 +600,32 @@
         <button class="btn btn-secondary" id="btn-cancel-end-game" style="font-size: 1.1rem; padding: 0.6rem 1.5rem;">🏴‍☠️ Keep Playing</button>
         <button class="btn btn-primary" id="btn-confirm-end-game" style="font-size: 1.1rem; padding: 0.6rem 1.5rem; background: linear-gradient(180deg, #D64545 0%, #B3261E 100%); border-color: #7A1919;">🚪 End Game</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Cloud Server Configuration Modal -->
+  <div class="modal-container" id="server-config-modal">
+    <div class="parchment-modal-overlay"></div>
+    <div class="parchment-modal-dialog" style="max-width: 480px;">
+      <div class="parchment-header">
+        <h2 class="diary-heading">🌐 Online Cloud Server</h2>
+        <button class="close-diary-btn modal-close-btn">&times;</button>
+      </div>
+      <p style="font-size: 0.92rem; color: #5C3B1E; margin-bottom: 1rem;">
+        To play online multiplayer with friends on their own phones or computers, connect your free Render.com (or Railway) WebSocket server.
+      </p>
+      <form id="form-server-config">
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <label class="form-label" for="server-url-input">Render Server URL</label>
+          <input type="url" class="form-input" id="server-url-input" placeholder="https://cartagena-server.onrender.com" style="font-size: 0.95rem; font-family: monospace;">
+          <small style="color: #7A5736; font-size: 0.8rem; display: block; margin-top: 0.3rem;">Leave empty to use default local/relative server.</small>
+        </div>
+        <div id="server-test-result" style="display: none; padding: 0.5rem 0.8rem; border-radius: 6px; font-size: 0.85rem; margin-bottom: 1rem;"></div>
+        <div style="display: flex; gap: 0.6rem; justify-content: flex-end;">
+          <button type="button" class="btn btn-secondary" id="btn-test-server-url" style="font-size: 1rem; padding: 0.5rem 1rem;">⚡ Test Connection</button>
+          <button type="submit" class="btn btn-primary" style="font-size: 1rem; padding: 0.5rem 1.2rem;">💾 Save &amp; Connect</button>
+        </div>
+      </form>
     </div>
   </div>
 

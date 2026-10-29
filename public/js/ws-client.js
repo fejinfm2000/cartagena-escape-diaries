@@ -61,7 +61,7 @@ export class WSClient {
     });
 
     let wsUrl;
-    const backend = window.__ENV__?.BACKEND_URL;
+    const backend = localStorage.getItem('cartagena_backend_url') || window.__ENV__?.BACKEND_URL;
     if (backend && backend.trim()) {
       const wsBase = backend.replace(/^http/i, 'ws').replace(/\/$/, '');
       wsUrl = `${wsBase}/ws?${params.toString()}`;

@@ -39,6 +39,7 @@ class CartagenaApp {
     this._setupWebSocketHandlers();
     this._checkUrlParams();
     this._checkActiveSession();
+    this._checkServerStatus();
   }
 
   _initElements() {
@@ -58,7 +59,8 @@ class CartagenaApp {
       passPlay: document.getElementById('pass-play-modal'),
       passDeviceOverlay: document.getElementById('pass-device-overlay'),
       tutorial: document.getElementById('tutorial-modal'),
-      endGameConfirm: document.getElementById('end-game-confirm-modal')
+      endGameConfirm: document.getElementById('end-game-confirm-modal'),
+      serverConfig: document.getElementById('server-config-modal')
     };
 
     // End Game button in header
@@ -213,6 +215,69 @@ class CartagenaApp {
     document.getElementById('btn-reveal-turn')?.addEventListener('click', () => {
       this.modals.passDeviceOverlay?.classList.remove('active');
       this.audio.playFanfare();
+    });
+
+    // Server Configuration Modal
+    document.getElementById('btn-config-server')?.addEventListener('click', () => {
+      const input = document.getElementById('server-url-input');
+      if (input) {
+        input.value = localStorage.getItem('cartagena_backend_url') || window.__ENV__?.BACKEND_URL || '';
+      }
+      const testResult = document.getElementById('server-test-result');
+      if (testResult) testResult.style.display = 'none';
+      this._showModal('serverConfig');
+    });
+
+    document.getElementById('btn-test-server-url')?.addEventListener('click', async () => {
+      const input = document.getElementById('server-url-input');
+      const testResult = document.getElementById('server-test-result');
+      if (!input || !testResult) return;
+      let url = input.value.trim().replace(/\/$/, '');
+      if (!url) {
+        testResult.style.display = 'block';
+        testResult.style.background = 'rgba(0,0,0,0.06)';
+        testResult.style.color = '#5C3B1E';
+        testResult.textContent = 'ℹ️ Default relative server will be used.';
+        return;
+      }
+      testResult.style.display = 'block';
+      testResult.style.background = 'rgba(224, 168, 46, 0.2)';
+      testResult.style.color = '#8C6415';
+      testResult.textContent = '⏳ Testing connection to server...';
+
+      try {
+        const start = Date.now();
+        const res = await fetch(`${url}/health`, { signal: AbortSignal.timeout(6000) });
+        const latency = Date.now() - start;
+        if (res.ok) {
+          testResult.style.background = 'rgba(63, 166, 107, 0.2)';
+          testResult.style.color = '#1E5C38';
+          testResult.textContent = `✅ Connected successfully! (${latency}ms latency) Server is ready for multiplayer.`;
+        } else {
+          testResult.style.background = 'rgba(179, 38, 30, 0.2)';
+          testResult.style.color = '#B3261E';
+          testResult.textContent = `⚠️ Server returned HTTP ${res.status}. Check URL.`;
+        }
+      } catch (err) {
+        testResult.style.background = 'rgba(179, 38, 30, 0.2)';
+        testResult.style.color = '#B3261E';
+        testResult.textContent = '❌ Could not connect. Note: Free Render servers spin down after inactivity and may take 30-50s to wake up.';
+      }
+    });
+
+    document.getElementById('form-server-config')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const input = document.getElementById('server-url-input');
+      let url = input?.value.trim().replace(/\/$/, '') || '';
+      if (url) {
+        localStorage.setItem('cartagena_backend_url', url);
+        this._showToast('🌐 Cloud server URL saved!');
+      } else {
+        localStorage.removeItem('cartagena_backend_url');
+        this._showToast('🌐 Reset to default local server');
+      }
+      this.modals.serverConfig?.classList.remove('active');
+      await this._checkServerStatus();
     });
 
     // Close Modals
@@ -519,11 +584,27 @@ class CartagenaApp {
   }
 
   _getApiUrl(path) {
-    const backend = window.__ENV__?.BACKEND_URL;
+    const backend = localStorage.getItem('cartagena_backend_url') || window.__ENV__?.BACKEND_URL;
     if (backend && backend.trim()) {
       return `${backend.replace(/\/$/, '')}${path}`;
     }
     return path;
+  }
+
+  async _checkServerStatus() {
+    const statusText = document.getElementById('server-status-text');
+    if (!statusText) return;
+    try {
+      const url = this._getApiUrl('/health');
+      const res = await fetch(url, { signal: AbortSignal.timeout(4000) });
+      if (res.ok) {
+        statusText.innerHTML = '🟢 <span style="color:#287A4C; font-weight:700;">Cloud Server Online</span> (Multiplayer Ready)';
+      } else {
+        statusText.innerHTML = '⚪ <span>Server Offline / Standby</span>';
+      }
+    } catch {
+      statusText.innerHTML = '⚪ <span>Pass & Play / Bots Ready</span> (No Cloud Server)';
+    }
   }
 
   async _createRoom({ hostName, hostColor, settings }) {

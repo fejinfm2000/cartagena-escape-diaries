@@ -20,8 +20,24 @@ const wss = new WebSocketServer({ server, path: '/ws' });
 
 const roomManager = new RoomManager();
 
+// Enable CORS for cross-origin Netlify requests
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(204);
+  }
+  next();
+});
+
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '..', 'public'), { dotfiles: 'allow' }));
+
+// Health Check for Render & uptime monitoring
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok', time: Date.now() });
+});
 
 // Google Play Store Digital Asset Links (Required for Trusted Web Activity verification)
 app.get('/.well-known/assetlinks.json', (req, res) => {
