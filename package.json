@@ -1,0 +1,16 @@
+{
+  "name": "cartagena-escape-diaries",
+  "version": "1.0.0",
+  "description": "Cartagena: Escape Diaries - Real-time online multiplayer pirate-escape board game",
+  "type": "module",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "node server/server.js",
+    "test": "node server/tests/engine.test.js"
+  },
+  "dependencies": {
+    "express": "^4.21.1",
+    "ws": "^8.18.0"
+  }
+}

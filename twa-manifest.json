@@ -1,0 +1,30 @@
+{
+  "packageId": "com.cartagena.escapediaries",
+  "host": "cartagena.yourdomain.com",
+  "name": "Cartagena: Escape Diaries",
+  "launcherName": "Cartagena",
+  "themeColor": "#0A0E17",
+  "navigationColor": "#0A0E17",
+  "backgroundColor": "#0A0E17",
+  "enableNotifications": false,
+  "startUrl": "/?source=playstore",
+  "iconUrl": "public/icons/icon-512.png",
+  "maskableIconUrl": "public/icons/icon-512.png",
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "signing": {
+    "scheme": "v2"
+  },
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "public/manifest.json",
+  "fallbackType": "customtabs",
+  "features": {
+    "playBilling": {
+      "enabled": false
+    }
+  },
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "orientation": "landscape"
+}

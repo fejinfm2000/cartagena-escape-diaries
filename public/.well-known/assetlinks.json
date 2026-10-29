@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.cartagena.escapediaries",
+      "sha256_cert_fingerprints": [
+        "Replace this with the SHA-256 fingerprint generated from your Google Play Console App Signing key or local keystore"
+      ]
+    }
+  }
+]

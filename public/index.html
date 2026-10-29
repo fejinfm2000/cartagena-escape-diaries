@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Cartagena: Escape Diaries | Pirate Escape Board Game</title>
+  <meta name="description" content="A real-time multiplayer digital pirate escape board game. Sneak your crew out of Cartagena Fortress through the underground tunnel onto the escape boat.">
+  <meta name="theme-color" content="#0a0e17">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Cartagena">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-512.png">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Inter:wght@400;500;600;700&family=Pirata+One&display=swap" rel="stylesheet">
+
+  <!-- Environment Config for Netlify / Cloud Deployments -->
+  <script src="env-config.js"></script>
+
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/board.css">
+  <link rel="stylesheet" href="css/cards.css">
+  <link rel="stylesheet" href="css/chat.css">
+</head>
+<body>
+
+  <!-- Top App Navigation Bar -->
+  <header class="app-header">
+    <div class="header-brand">
+      <span class="brand-icon">🏴‍☠️</span>
+      <h1 class="brand-title">Cartagena</h1>
+      <span class="brand-subtitle">Escape Diaries</span>
+    </div>
+    <div class="header-actions">
+      <button class="icon-btn mute-toggle-btn" id="mute-toggle-btn" title="Toggle Sound" aria-label="Toggle Sound">🔊</button>
+      <button class="icon-btn chat-toggle-btn" id="chat-toggle-btn" title="Open Crew Chat" aria-label="Open Crew Chat">
+        💬
+        <span class="btn-badge" id="chat-unread-badge">0</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main View Router -->
+  <main class="main-content">
+
+    <!-- 1. LANDING VIEW -->
+    <section id="landing-view" class="view-panel active">
+      <div class="landing-container">
+        <div class="landing-spread-grid">
+          
+          <!-- LEFT CARD: CHARTER & GAME LAUNCHER -->
+          <div class="landing-parchment landing-menu-card">
+            <h2 class="landing-title">Cartagena: Escape Diaries</h2>
+            <p class="landing-tagline">"Entry 107: The moon is high. Tonight, we break for the sea."</p>
+            <p class="landing-intro">
+              Welcome to the fortress of Cartagena de Indias, 1672. You and your crew are locked in the Spanish dungeon. 
+              Play your cards to sneak your pirates through the 36-space stone tunnel, retreat backward to gather supplies, 
+              and be the first captain to board all pirates onto the escape rowboat!
+            </p>
+            <div class="landing-menu-buttons">
+              <button class="btn btn-primary" id="btn-show-create">⚔️ Create Online Room (Host)</button>
+              <button class="btn btn-secondary" id="btn-show-join">🗝️ Join With Code</button>
+              <button class="btn btn-primary" id="btn-show-bot-setup" style="background: linear-gradient(180deg, #3FA66B 0%, #287A4C 100%); border-color: #1E5C38;">🤖 Play vs Bots (Choose Difficulty)</button>
+              <button class="btn btn-secondary" id="btn-show-pass-play" style="background: linear-gradient(180deg, #8E5BC9 0%, #683BA6 100%); border-color: #4C2680; color: #FFF;">📱 Local Pass &amp; Play (Single Device)</button>
+              <button class="btn btn-outline" id="btn-how-to-play">📖 Open Illustrated Tutorial</button>
+            </div>
+          </div>
+
+          <!-- RIGHT CARD: DIRECT RULES & CONDITIONS (ALWAYS VISIBLE ON FIRST PAGE) -->
+          <div class="landing-parchment landing-rules-card">
+            <div class="rules-card-header">
+              <span class="rules-badge">📜 CAPTAIN'S CODE</span>
+              <h3 class="rules-main-title">Cartagena Escape Rules</h3>
+            </div>
+
+            <div class="rules-scrollable-body">
+              
+              <!-- Goal -->
+              <div class="rule-block">
+                <h4 class="rule-title">🎯 The Escape Goal</h4>
+                <p class="rule-text">
+                  First captain to get <strong>all 6 pirates</strong> (or 4 in Quick Game) through the 36-space tunnel onto the <strong>Rowboat</strong> wins immediately!
+                </p>
+              </div>
+
+              <!-- 3 Actions per Turn -->
+              <div class="rule-block">
+                <h4 class="rule-title">⚡ Up to 3 Actions per Turn</h4>
+                <p class="rule-text">On your turn, you can mix and repeat up to 3 actions in any order:</p>
+                
+                <div class="rule-action-box forward-box">
+                  <span class="action-box-icon">🏃</span>
+                  <div class="action-box-content">
+                    <strong>Action A: Dash Forward (Costs 1 Card)</strong>
+                    <p>Play a card from your hand. Your pirate leaps to the <em>nearest free space</em> ahead matching that symbol (max 3 pirates per space). <strong>If no matching space is ahead, jump directly onto the Escape Boat!</strong></p>
+                  </div>
+                </div>
+
+                <div class="rule-action-box retreat-box">
+                  <span class="action-box-icon">↩️</span>
+                  <div class="action-box-content">
+                    <strong>Action B: Retreat for Cards (Costs 0 Cards)</strong>
+                    <p>Select a pirate in the tunnel. It steps backward to the nearest space holding <strong>1 or 2 pirates</strong>. Draw <strong>1 or 2 cards</strong> equal to the pirates already there! (Empty spaces & Jail are skipped).</p>
+                  </div>
+                </div>
+
+                <div class="rule-action-box end-box">
+                  <span class="action-box-icon">🏁</span>
+                  <div class="action-box-content">
+                    <strong>End Turn & Card Refill</strong>
+                    <p>When your turn ends, draw cards until you hold <strong>6 cards</strong> (if holding fewer than 6). If you have 6 or more, you keep them all!</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 6 Symbols -->
+              <div class="rule-block">
+                <h4 class="rule-title">🎴 The 6 Symbols (102 Cards)</h4>
+                <div class="symbols-grid-showcase">
+                  <span class="symbol-pill">🍾 Rum Bottle</span>
+                  <span class="symbol-pill">🔫 Pistol</span>
+                  <span class="symbol-pill">🗝️ Jail Key</span>
+                  <span class="symbol-pill">💀 Skull</span>
+                  <span class="symbol-pill">⚔️ Cutlass</span>
+                  <span class="symbol-pill">🎩 Tricorn Hat</span>
+                </div>
+                <p class="rule-note">The tunnel has 36 spaces (6 tiles &times; 6 symbols). Capacity: max 3 pirates per space.</p>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. LOBBY VIEW -->
+    <section id="lobby-view" class="view-panel">
+      <div class="lobby-layout">
+        <div class="lobby-card">
+          <div class="lobby-header-row">
+            <div>
+              <h2 class="diary-heading">The Smuggler's Hideout</h2>
+              <p class="diary-subtitle">Assemble your crew before making the break</p>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.8rem;">
+              <span class="room-code-badge" id="lobby-room-code-display">----</span>
+              <button class="icon-btn" id="btn-copy-room-code" title="Copy Code">📋</button>
+              <button class="icon-btn" id="btn-copy-room-link" title="Copy Invitation Link">🔗</button>
+            </div>
+          </div>
+
+          <!-- Player Slots -->
+          <div class="lobby-slots-grid" id="lobby-player-slots">
+            <!-- Dynamically populated -->
+          </div>
+
+          <!-- Bot controls for Host -->
+          <div class="lobby-bot-actions" id="lobby-bot-controls">
+            <span style="font-weight: 700; color: #4A3525;">Recruit Bot Crew:</span>
+            <button class="btn btn-secondary" id="btn-add-easy-bot" style="font-size: 1rem; padding: 0.4rem 0.8rem; min-height: 38px;">+ Easy Bot</button>
+            <button class="btn btn-secondary" id="btn-add-med-bot" style="font-size: 1rem; padding: 0.4rem 0.8rem; min-height: 38px;">+ Medium Bot</button>
+            <button class="btn btn-secondary" id="btn-add-hard-bot" style="font-size: 1rem; padding: 0.4rem 0.8rem; min-height: 38px;">+ Hard Bot</button>
+          </div>
+
+          <div class="lobby-bottom-bar">
+            <button class="btn btn-primary" id="btn-start-game" style="font-size: 1.5rem; padding: 0.8rem 2.5rem;">🏴‍☠️ Start Escape!</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. GAME TABLE VIEW -->
+    <section id="game-view" class="view-panel">
+      <div class="game-table-layout">
+        
+        <!-- LEFT / MAIN ARENA (Zero-scroll laptop view) -->
+        <div class="game-arena">
+          <!-- Turn Status Bar -->
+          <div class="turn-banner" id="turn-banner">
+            <span class="turn-highlight">Waiting for match...</span>
+            <div class="turn-center-info">
+              <div class="action-pips" id="action-pips">
+                <span class="pip">●</span>
+                <span class="pip">●</span>
+                <span class="pip">●</span>
+                <span class="pip-label">3 actions left</span>
+              </div>
+            </div>
+            <!-- Laptop Board Maximize Toggle -->
+            <button class="btn-toggle-sidebar" id="btn-toggle-sidebar" title="Toggle sidebar to maximize board view">
+              ⛶ Maximize Board
+            </button>
+          </div>
+
+          <!-- Opponents Strip -->
+          <div class="opponents-container" id="opponents-container">
+            <!-- Dynamically populated -->
+          </div>
+
+          <!-- SVG Board Center Viewport (Flex: 1, scales to fit screen) -->
+          <div class="board-main-viewport" id="board-container">
+            <!-- Dynamically rendered SVG -->
+          </div>
+
+          <!-- Compact Bottom Deck: Controls + Hand Cards -->
+          <div class="game-bottom-deck">
+            <div class="action-controls-bar">
+              <div class="action-buttons-group">
+                <button class="btn-action active-action" id="btn-action-forward" title="Hop forward using a card">
+                  🏃 Dash Forward
+                </button>
+                <button class="btn-action" id="btn-action-backward" title="Retreat to draw 1 or 2 cards">
+                  ↩️ Retreat (+1/+2)
+                </button>
+                <button class="btn-action" id="btn-action-undo" title="Undo last action">
+                  ⏪ Undo
+                </button>
+                <!-- Crew Locator Button & Interactive Popover -->
+                <div class="crew-locator-wrapper">
+                  <button class="btn-action btn-crew-locator" id="btn-crew-locator" title="Find where your pirates are located on the board">
+                    📍 My Crew (<span id="crew-count-summary">0/6</span>)
+                  </button>
+                  <div class="crew-locator-popover" id="crew-locator-popover">
+                    <div class="crew-popover-header">
+                      <span>🏴‍☠️ Crew Roster & Location</span>
+                      <button class="crew-popover-close" id="crew-popover-close" aria-label="Close">&times;</button>
+                    </div>
+                    <div class="crew-pirates-list" id="crew-pirates-list">
+                      <!-- Populated dynamically with pirate locations and click-to-select -->
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <button class="btn-action btn-end-turn" id="btn-action-endturn" title="Conclude your turn & draw cards">
+                🏁 End Turn
+              </button>
+            </div>
+
+            <!-- Player's Private Hand Cards Fan -->
+            <div class="hand-fan-container">
+              <div class="hand-cards-list" id="hand-cards-container">
+                <!-- Dynamically populated cards -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT SIDEBAR: NEXT STEP INSTRUCTION & CREW DISPATCH (Laptop / Desktop) -->
+        <aside class="game-sidebar" id="game-sidebar">
+          
+          <!-- Dynamic Next Step Card (User Instruction with Collapse Option) -->
+          <div class="next-step-card" id="next-step-card">
+            <div class="next-step-header">
+              <div class="next-step-header-left">
+                <span class="next-step-icon">🧭</span>
+                <h3 class="next-step-title">Captain's Next Step</h3>
+              </div>
+              <button class="sidebar-collapse-btn" id="btn-toggle-next-step" title="Hide/Show Next Step" aria-label="Toggle Next Step">▼</button>
+            </div>
+            <div class="next-step-body" id="next-step-body">
+              <div class="next-step-prompt">Awaiting your command...</div>
+              <div class="next-step-detail">Take up to 3 actions on your turn.</div>
+            </div>
+            <div class="quick-guide-hints" id="quick-guide-hints">
+              <div class="guide-hint-item">
+                <span class="hint-icon">🏃</span>
+                <span class="hint-text"><strong>Forward:</strong> Play card &rarr; leap to next free matching space.</span>
+              </div>
+              <div class="guide-hint-item">
+                <span class="hint-icon">↩️</span>
+                <span class="hint-text"><strong>Retreat:</strong> Step back to 1-2 pirates &rarr; draw 1-2 cards!</span>
+              </div>
+              <div class="guide-hint-item">
+                <span class="hint-icon">⛵</span>
+                <span class="hint-text"><strong>Escape:</strong> If no matching space ahead, board the boat!</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Desktop Integrated Crew Chat & Dispatch Log (with Collapse Option) -->
+          <div class="sidebar-chat-box" id="sidebar-chat-box">
+            <div class="sidebar-chat-header">
+              <span>🏴‍☠️ Crew Dispatch & Chat</span>
+              <button class="sidebar-collapse-btn" id="btn-toggle-sidebar-chat" title="Hide/Show Crew Chat" aria-label="Toggle Crew Chat">▼</button>
+            </div>
+            <div class="sidebar-chat-content" id="sidebar-chat-content">
+              <div class="sidebar-chat-messages" id="sidebar-chat-messages">
+                <div class="chat-msg chat-system-msg">Cartagena Tavern log active.</div>
+              </div>
+              
+              <div class="sidebar-quick-reactions">
+                <button class="quick-emoji-btn" data-phrase="⚓">⚓</button>
+                <button class="quick-emoji-btn" data-phrase="🏴‍☠️">🏴‍☠️</button>
+                <button class="quick-emoji-btn" data-phrase="😂">😂</button>
+                <button class="quick-emoji-btn" data-phrase="👏">👏</button>
+                <button class="quick-emoji-btn" data-phrase="GG">GG</button>
+                <button class="quick-emoji-btn phrase" data-phrase="Nice move!">"Nice!"</button>
+                <button class="quick-emoji-btn phrase" data-phrase="Ahoy, mateys!">"Ahoy!"</button>
+              </div>
+
+              <div class="sidebar-chat-input-bar">
+                <input type="text" class="chat-input" id="sidebar-chat-input" placeholder="Dispatch a message..." maxlength="200" autocomplete="off">
+                <button class="chat-send-btn" id="sidebar-chat-send-btn">Send</button>
+              </div>
+            </div>
+          </div>
+
+        </aside>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Realtime Chat Drawer / Bottom Sheet -->
+  <aside class="chat-drawer" id="chat-drawer">
+    <div class="chat-header">
+      <span class="chat-title">🏴‍☠️ Crew Tavern Chat</span>
+      <button class="chat-close-btn" id="chat-close-btn" aria-label="Close Chat">&times;</button>
+    </div>
+
+    <!-- Messages Container -->
+    <div class="chat-messages-container" id="chat-messages-container">
+      <div class="chat-msg chat-system-msg">Welcome to the Cartagena Tavern! Speak your mind, sailor.</div>
+    </div>
+
+    <!-- Quick Emoji / Reactions Bar -->
+    <div class="chat-quick-reactions">
+      <button class="quick-emoji-btn" data-phrase="⚓">⚓</button>
+      <button class="quick-emoji-btn" data-phrase="🏴‍☠️">🏴‍☠️</button>
+      <button class="quick-emoji-btn" data-phrase="😂">😂</button>
+      <button class="quick-emoji-btn" data-phrase="😱">😱</button>
+      <button class="quick-emoji-btn" data-phrase="👏">👏</button>
+      <button class="quick-emoji-btn" data-phrase="GG">GG</button>
+      <button class="quick-emoji-btn phrase" data-phrase="Ahoy, mateys!">"Ahoy!"</button>
+      <button class="quick-emoji-btn phrase" data-phrase="Nice move!">"Nice move!"</button>
+      <button class="quick-emoji-btn phrase" data-phrase="Hurry up!">"Hurry up!"</button>
+      <button class="quick-emoji-btn phrase" data-phrase="Shiver me timbers!">"Argh!"</button>
+    </div>
+
+    <!-- Chat Input Form -->
+    <div class="chat-input-bar">
+      <input type="text" class="chat-input" id="chat-input" placeholder="Type a pirate dispatch..." maxlength="300" autocomplete="off">
+      <button class="chat-send-btn" id="chat-send-btn">Send</button>
+    </div>
+  </aside>
+
+  <!-- MODALS -->
+
+  <!-- Create Room Modal (Simplified: Name Only) -->
+  <div class="modal-container" id="create-room-modal">
+    <div class="parchment-modal-overlay"></div>
+    <div class="parchment-modal-dialog">
+      <div class="parchment-header">
+        <h2 class="diary-heading">Charter an Escape</h2>
+        <button class="close-diary-btn modal-close-btn">&times;</button>
+      </div>
+      <form id="form-create-room">
+        <div class="form-group">
+          <label class="form-label" for="create-player-name">Your Pirate Name</label>
+          <input type="text" class="form-input" id="create-player-name" value="Captain Morgan" required maxlength="25" placeholder="Enter captain name...">
+        </div>
+
+        <!-- Optional Collapsible Advanced Settings -->
+        <details class="advanced-settings-drawer" style="margin-bottom: 1.2rem;">
+          <summary style="cursor: pointer; color: #5C3B1E; font-size: 0.9rem; font-weight: 600;">⚙️ Optional Rules & Seats</summary>
+          <div style="margin-top: 0.8rem; display: flex; flex-direction: column; gap: 0.6rem;">
+            <div class="form-group">
+              <label class="form-label" for="create-seats">Max Crew Seats</label>
+              <select class="form-select" id="create-seats">
+                <option value="2">2 Players</option>
+                <option value="3">3 Players</option>
+                <option value="4" selected>4 Players</option>
+                <option value="5">5 Players</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="create-timer">Turn Timer</label>
+              <select class="form-select" id="create-timer">
+                <option value="0" selected>No Timer (Relaxed)</option>
+                <option value="30">30 Seconds (Fast)</option>
+                <option value="60">60 Seconds (Standard)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="checkbox-label">
+                <input type="checkbox" id="create-quick-mode">
+                <span>Quick Game (4 pirates each instead of 6)</span>
+              </label>
+            </div>
+          </div>
+        </details>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%; font-size: 1.25rem;">⚔️ Create Room &amp; Invite</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Join Room Modal (Simplified: Room Code & Name Only) -->
+  <div class="modal-container" id="join-room-modal">
+    <div class="parchment-modal-overlay"></div>
+    <div class="parchment-modal-dialog">
+      <div class="parchment-header">
+        <h2 class="diary-heading">Board a Ship</h2>
+        <button class="close-diary-btn modal-close-btn">&times;</button>
+      </div>
+      <form id="form-join-room">
+        <div class="form-group">
+          <label class="form-label" for="join-room-code">Room Code (4 Letters)</label>
+          <input type="text" class="form-input" id="join-room-code" placeholder="e.g. PIR8" required maxlength="6" style="text-transform: uppercase; font-size: 1.3rem; letter-spacing: 2px;">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="join-player-name">Your Pirate Name</label>
+          <input type="text" class="form-input" id="join-player-name" value="Buccaneer" required maxlength="25">
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%; font-size: 1.25rem; margin-top: 1rem;">🗝️ Join Crew</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Bot Setup Modal (§1 & §4: Choose Difficulty & Bot Count) -->
+  <div class="modal-container" id="bot-setup-modal">
+    <div class="parchment-modal-overlay"></div>
+    <div class="parchment-modal-dialog">
+      <div class="parchment-header">
+        <h2 class="diary-heading">🤖 Play vs Bots</h2>
+        <button class="close-diary-btn modal-close-btn">&times;</button>
+      </div>
+      <form id="form-bot-setup">
+        <div class="form-group">
+          <label class="form-label" for="bot-player-name">Your Pirate Name</label>
+          <input type="text" class="form-input" id="bot-player-name" value="Captain" required maxlength="25">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Choose Bot Difficulty</label>
+          <div class="bot-difficulty-selector">
+            <label class="difficulty-radio-card">
+              <input type="radio" name="bot-difficulty" value="easy">
+              <div class="difficulty-card-content">
+                <span class="diff-title">🟢 Easy</span>
+                <span class="diff-desc">Apprentice pirate. Makes casual moves.</span>
+              </div>
+            </label>
+            <label class="difficulty-radio-card">
+              <input type="radio" name="bot-difficulty" value="medium" checked>
+              <div class="difficulty-card-content">
+                <span class="diff-title">🟡 Medium</span>
+                <span class="diff-desc">Balanced corsair. Tactical retreats.</span>
+              </div>
+            </label>
+            <label class="difficulty-radio-card">
+              <input type="radio" name="bot-difficulty" value="hard">
+              <div class="difficulty-card-content">
+                <span class="diff-title">🔴 Hard</span>
+                <span class="diff-desc">Master captain. Aggressive blockades!</span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="bot-count-select">Number of Opponent Bots</label>
+          <select class="form-select" id="bot-count-select">
+            <option value="1">1 Opponent Bot (1v1 Duel)</option>
+            <option value="2" selected>2 Opponent Bots (3-Player Match)</option>
+            <option value="3">3 Opponent Bots (4-Player Fleet)</option>
+          </select>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%; font-size: 1.25rem; margin-top: 1rem;">⚔️ Launch Match vs Bots</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Pass & Play Modal (§2: Single Device Local Multiplayer) -->
+  <div class="modal-container" id="pass-play-modal">
+    <div class="parchment-modal-overlay"></div>
+    <div class="parchment-modal-dialog">
+      <div class="parchment-header">
+        <h2 class="diary-heading">📱 Pass &amp; Play</h2>
+        <button class="close-diary-btn modal-close-btn">&times;</button>
+      </div>
+      <form id="form-pass-play">
+        <p style="font-size: 0.95rem; color: #5C3B1E; margin-bottom: 1rem;">
+          Play together on this single device! Between turns, hands are hidden so you can safely pass the device.
+        </p>
+
+        <div class="form-group">
+          <label class="form-label" for="pnp-player-count">How many players on this device?</label>
+          <select class="form-select" id="pnp-player-count">
+            <option value="2" selected>2 Players</option>
+            <option value="3">3 Players</option>
+            <option value="4">4 Players</option>
+            <option value="5">5 Players</option>
+          </select>
+        </div>
+
+        <!-- Dynamic Player Name Fields -->
+        <div id="pnp-names-container" style="display: flex; flex-direction: column; gap: 0.6rem; margin-bottom: 1.2rem;">
+          <div class="form-group">
+            <label class="form-label">Player 1 Name (Red)</label>
+            <input type="text" class="form-input pnp-name-input" value="Captain Red" required maxlength="20">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Player 2 Name (Blue)</label>
+            <input type="text" class="form-input pnp-name-input" value="Captain Blue" required maxlength="20">
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%; font-size: 1.25rem;">📱 Start Pass &amp; Play</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Pass Device Privacy Overlay (§2) -->
+  <div class="pass-device-overlay" id="pass-device-overlay">
+    <div class="pass-device-card">
+      <div class="pass-device-icon">📱 🔒 🏴‍☠️</div>
+      <h2 class="pass-device-title" id="pass-device-title">Pass Device</h2>
+      <p class="pass-device-subtitle">Turn complete! Private cards are hidden from prying eyes.</p>
+      
+      <div class="pass-device-next-badge">
+        <span class="next-captain-tag">Next Captain:</span>
+        <strong id="pass-device-next-name">Captain Blue</strong>
+      </div>
+
+      <button class="btn btn-primary btn-reveal-turn" id="btn-reveal-turn">
+        👁️ I am <span id="btn-reveal-name">Captain Blue</span> &mdash; Show My Hand!
+      </button>
+    </div>
+  </div>
+
+  <!-- Tutorial / How to Play Modal -->
+  <div class="modal-container" id="tutorial-modal">
+    <!-- Populated by Tutorial Class -->
+  </div>
+
+  <!-- Game Over Victory / Defeat Modal -->
+  <div class="modal-container" id="gameover-modal">
+    <div class="parchment-modal-overlay"></div>
+    <div class="parchment-modal-dialog gameover-dialog" id="gameover-dialog" style="text-align: center; max-width: 580px;">
+      <!-- Outcome icon / crown or chains -->
+      <div class="gameover-outcome-badge" id="gameover-outcome-badge">
+        <span class="outcome-icon" id="gameover-outcome-icon">👑 ⛵</span>
+      </div>
+      
+      <!-- Headline & Subline -->
+      <h2 class="diary-heading gameover-headline" id="gameover-headline">GLORIOUS ESCAPE!</h2>
+      <p class="diary-subtitle gameover-subline" id="gameover-subline">All your pirates successfully boarded the escape boat!</p>
+
+      <!-- Personal result card for success vs failed players -->
+      <div class="personal-result-card" id="personal-result-card"></div>
+
+      <!-- Standings header and roster -->
+      <div class="rankings-header-row">
+        <span class="rankings-header-title">📜 Final Crew Standings</span>
+      </div>
+      <div class="rankings-list" id="rankings-list">
+        <!-- Rankings populated dynamically -->
+      </div>
+
+      <div class="gameover-actions-bar" style="display: flex; gap: 1rem; justify-content: center; margin-top: 1.4rem;">
+        <button class="btn btn-primary" id="btn-rematch">🔄 Play Again</button>
+        <button class="btn btn-secondary" id="btn-exit-lobby">🚪 Exit to Menu</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Application Main Script -->
+  <script type="module" src="js/app.js"></script>
+
+  <!-- Service Worker Registration for PWA & Play Store -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').then((reg) => {
+          console.log('🏴‍☠️ Cartagena ServiceWorker registered successfully:', reg.scope);
+        }).catch((err) => {
+          console.warn('Cartagena ServiceWorker registration failed:', err);
+        });
+      });
+    }
+  </script>
+</body>
+</html>

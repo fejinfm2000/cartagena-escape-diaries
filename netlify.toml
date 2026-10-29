@@ -1,0 +1,15 @@
+[build]
+  command = "node -e \"const fs = require('fs'); const backend = process.env.BACKEND_URL || ''; fs.writeFileSync('public/env-config.js', 'window.__ENV__ = { BACKEND_URL: \\'' + backend + '\\' };\\n');\""
+  publish = "public"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "SAMEORIGIN"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"

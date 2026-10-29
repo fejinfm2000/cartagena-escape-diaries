@@ -1,0 +1,120 @@
+/**
+ * Cartagena: Escape Diaries - Tactile Pirate Cards Fan (§3.3 & §6.2)
+ * Compact & responsive for laptop screens with zero vertical overflow.
+ */
+
+.hand-fan-container {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  padding: 0.2rem 0.6rem 0.1rem;
+  overflow-x: auto;
+  overflow-y: visible;
+  scrollbar-width: none;
+  min-height: 105px;
+  perspective: 1000px;
+}
+
+.hand-fan-container::-webkit-scrollbar {
+  display: none;
+}
+
+.hand-cards-list {
+  display: flex;
+  gap: -10px;
+  padding: 0.2rem 0.5rem;
+}
+
+.pirate-card {
+  --card-accent: var(--color-gold);
+  width: 70px;
+  height: 98px;
+  background: var(--color-parchment-card);
+  border: 2px solid #8C6415;
+  border-radius: 6px;
+  color: var(--color-ink);
+  cursor: pointer;
+  position: relative;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.45);
+  transition: transform 0.18s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.18s ease;
+  flex-shrink: 0;
+  margin: 0 3px;
+}
+
+.pirate-card:hover {
+  transform: translateY(-12px) scale(1.06);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.6), 0 0 10px var(--card-accent);
+  z-index: 50;
+}
+
+.pirate-card.card-selected {
+  transform: translateY(-18px) scale(1.1);
+  border-color: var(--color-gold);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.7), 0 0 16px var(--color-gold);
+  z-index: 60;
+  background: #FFF;
+}
+
+.card-inner {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 3px 4px;
+  position: relative;
+  pointer-events: none;
+}
+
+.card-corner {
+  font-size: 0.85rem;
+  line-height: 1;
+}
+
+.card-corner.top-left {
+  align-self: flex-start;
+}
+
+.card-corner.bottom-right {
+  align-self: flex-end;
+  transform: rotate(180deg);
+}
+
+.card-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+}
+
+.card-icon {
+  font-size: 1.55rem;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.25));
+}
+
+.card-name {
+  font-family: var(--font-pirate);
+  font-size: 0.8rem;
+  color: #5C4229;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+/* Mobile responsive card size */
+@media (max-width: 640px) {
+  .hand-fan-container {
+    min-height: 95px;
+    padding: 0.2rem 0.4rem;
+  }
+  .pirate-card {
+    width: 62px;
+    height: 88px;
+    margin: 0 2px;
+  }
+  .card-icon {
+    font-size: 1.35rem;
+  }
+  .card-name {
+    font-size: 0.7rem;
+  }
+}

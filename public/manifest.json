@@ -1,0 +1,51 @@
+{
+  "name": "Cartagena: Escape Diaries",
+  "short_name": "Cartagena",
+  "description": "Real-time pirate escape board game. Play solo vs smart bots, local Pass & Play on a single device, or private online multiplayer with your crew.",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#0a0e17",
+  "theme_color": "#0a0e17",
+  "categories": [
+    "games",
+    "board",
+    "strategy"
+  ],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/icons/feature-graphic.jpg",
+      "sizes": "1024x500",
+      "type": "image/jpeg",
+      "form_factor": "wide",
+      "label": "Cartagena: Escape Diaries Gameplay"
+    }
+  ]
+}
