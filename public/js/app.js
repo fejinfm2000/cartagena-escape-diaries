@@ -38,6 +38,7 @@ class CartagenaApp {
     this._attachEventListeners();
     this._setupWebSocketHandlers();
     this._checkUrlParams();
+    this._checkActiveSession();
   }
 
   _initElements() {
@@ -366,6 +367,7 @@ class CartagenaApp {
     // Rematch / Back to Lobby
     document.getElementById('btn-rematch')?.addEventListener('click', () => {
       this.modals.gameover?.classList.remove('active');
+      localStorage.removeItem('cartagena_saved_session');
       if (this.isLocalSession) {
         this._switchView('landing');
       } else {
@@ -374,6 +376,7 @@ class CartagenaApp {
     });
     document.getElementById('btn-exit-lobby')?.addEventListener('click', () => {
       this.modals.gameover?.classList.remove('active');
+      localStorage.removeItem('cartagena_saved_session');
       if (!this.isLocalSession) {
         this.ws.disconnect();
       }
@@ -452,8 +455,18 @@ class CartagenaApp {
           this._showToast(`🏴‍☠️ ${this.isPassAndPlay ? this.gameState.players.find(p=>p.id===this.myPlayerId)?.name : 'Captain'}! It is your turn! Take up to 3 actions.`);
         }
 
+        // Persist active local session to localStorage
+        if (this.isLocalSession && data.state.status === 'IN_PROGRESS') {
+          try {
+            localStorage.setItem('cartagena_saved_session', JSON.stringify(this.localCoordinator.serialize()));
+          } catch (e) {
+            console.warn('Could not save session to localStorage:', e);
+          }
+        }
+
         // Game Over check
         if (data.state.status === 'FINISHED') {
+          localStorage.removeItem('cartagena_saved_session');
           this._showGameOver(data.state);
         }
       });
@@ -562,11 +575,45 @@ class CartagenaApp {
     });
 
     if (viewName === 'game') {
+      if (window.location.hash !== '#play') {
+        window.history.replaceState(null, '', '#play');
+      }
       setTimeout(() => {
         if (this.gameState) {
           this.boardRenderer.render(this.gameState, this.myPlayerId);
         }
       }, 100);
+    } else if (viewName === 'landing') {
+      if (window.location.hash === '#play') {
+        window.history.replaceState(null, '', window.location.pathname);
+      }
+    }
+  }
+
+  _checkActiveSession() {
+    const savedStr = localStorage.getItem('cartagena_saved_session');
+    if (savedStr) {
+      try {
+        const saved = JSON.parse(savedStr);
+        if (saved && saved.engineState && saved.engineState.status === 'IN_PROGRESS') {
+          this.isLocalSession = true;
+          this.isPassAndPlay = !!saved.isPassAndPlay;
+          this.myPlayerId = saved.hostId || 'player_host';
+          const restored = this.localCoordinator.restore(saved);
+          if (restored) {
+            this._switchView('game');
+            this._showToast('🏴‍☠️ Welcome back, Captain! Your escape diary has been resumed.');
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to restore active session:', err);
+        localStorage.removeItem('cartagena_saved_session');
+      }
+    }
+
+    if (window.location.hash === '#play') {
+      window.history.replaceState(null, '', window.location.pathname);
     }
   }
 

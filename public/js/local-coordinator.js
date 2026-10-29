@@ -325,4 +325,36 @@ export class LocalCoordinator {
       state
     });
   }
+
+  serialize() {
+    return {
+      roomCode: this.roomCode,
+      hostId: this.hostId,
+      isPassAndPlay: this.isPassAndPlay,
+      settings: this.settings,
+      messages: this.messages,
+      engineState: this.engine ? this.engine.serialize() : null
+    };
+  }
+
+  restore(saved) {
+    if (!saved || !saved.engineState) return false;
+    try {
+      this.roomCode = saved.roomCode || 'LOCAL';
+      this.hostId = saved.hostId || 'player_host';
+      this.isPassAndPlay = !!saved.isPassAndPlay;
+      this.settings = saved.settings || this.settings;
+      this.messages = saved.messages || [];
+      this.engine = CartagenaEngine.deserialize(saved.engineState);
+      if (!this.engine) return false;
+
+      this._broadcastRoomJoined(this.hostId);
+      this._broadcastState();
+      this._checkNextTurn();
+      return true;
+    } catch (err) {
+      console.warn('Failed to restore local session:', err);
+      return false;
+    }
+  }
 }

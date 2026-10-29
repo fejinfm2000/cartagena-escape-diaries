@@ -758,4 +758,54 @@ export class CartagenaEngine {
       })
     };
   }
+
+  serialize() {
+    return {
+      seed: this.seed,
+      quickGame: this.quickGame,
+      piratesPerPlayer: this.piratesPerPlayer,
+      turnTimerSeconds: this.turnTimerSeconds,
+      allowUndo: this.allowUndo,
+      casualMode: this.casualMode,
+      status: this.status,
+      board: this.board,
+      drawPile: this.drawPile,
+      discardPile: this.discardPile,
+      players: this.players,
+      currentPlayerIndex: this.currentPlayerIndex,
+      actionsLeft: this.actionsLeft,
+      turnNumber: this.turnNumber,
+      winnerId: this.winnerId,
+      rankings: this.rankings,
+      history: this.history,
+      turnHistory: this.turnHistory,
+      version: this.version
+    };
+  }
+
+  static deserialize(data) {
+    if (!data) return null;
+    const engine = new CartagenaEngine({
+      seed: data.seed,
+      quickGame: data.quickGame,
+      piratesCount: data.piratesPerPlayer,
+      turnTimer: data.turnTimerSeconds,
+      allowUndo: data.allowUndo,
+      casualMode: data.casualMode
+    });
+    engine.status = data.status;
+    engine.board = data.board;
+    engine.drawPile = data.drawPile;
+    engine.discardPile = data.discardPile;
+    engine.players = data.players;
+    engine.currentPlayerIndex = data.currentPlayerIndex;
+    engine.actionsLeft = data.actionsLeft;
+    engine.turnNumber = data.turnNumber;
+    engine.winnerId = data.winnerId;
+    engine.rankings = data.rankings;
+    engine.history = data.history;
+    engine.turnHistory = data.turnHistory;
+    engine.version = data.version;
+    return engine;
+  }
 }
