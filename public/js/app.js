@@ -4,6 +4,7 @@
  */
 
 import { WSClient } from './ws-client.js';
+import { LocalCoordinator } from './local-coordinator.js';
 import { AudioManager } from './audio.js';
 import { BoardRenderer } from './board-renderer.js';
 import { Tutorial } from './tutorial.js';
@@ -12,6 +13,8 @@ import { SYMBOL_META, PLAYER_COLORS, JAIL_INDEX, BOAT_INDEX } from './engine-met
 class CartagenaApp {
   constructor() {
     this.ws = new WSClient();
+    this.localCoordinator = new LocalCoordinator();
+    this.isLocalSession = false;
     this.audio = new AudioManager();
     this.boardRenderer = null;
     this.tutorial = null;
@@ -218,19 +221,19 @@ class CartagenaApp {
     // Lobby buttons
     document.getElementById('btn-start-game')?.addEventListener('click', () => {
       this.audio.playHop();
-      this.ws.send('START_GAME');
+      this._send('START_GAME');
     });
 
     document.getElementById('btn-add-easy-bot')?.addEventListener('click', () => {
-      this.ws.send('ADD_BOT', { difficulty: 'easy' });
+      this._send('ADD_BOT', { difficulty: 'easy' });
     });
 
     document.getElementById('btn-add-med-bot')?.addEventListener('click', () => {
-      this.ws.send('ADD_BOT', { difficulty: 'medium' });
+      this._send('ADD_BOT', { difficulty: 'medium' });
     });
 
     document.getElementById('btn-add-hard-bot')?.addEventListener('click', () => {
-      this.ws.send('ADD_BOT', { difficulty: 'hard' });
+      this._send('ADD_BOT', { difficulty: 'hard' });
     });
 
     document.getElementById('btn-copy-room-code')?.addEventListener('click', () => {
@@ -268,12 +271,12 @@ class CartagenaApp {
 
     this.btnEndTurn?.addEventListener('click', () => {
       this.audio.playHop();
-      this.ws.send('END_TURN');
+      this._send('END_TURN');
       this._resetSelection();
     });
 
     this.btnUndo?.addEventListener('click', () => {
-      this.ws.send('UNDO');
+      this._send('UNDO');
       this._resetSelection();
     });
 
@@ -355,7 +358,7 @@ class CartagenaApp {
     document.querySelectorAll('.quick-emoji-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const text = btn.getAttribute('data-phrase') || btn.textContent.trim();
-        this.ws.send('CHAT_SEND', { text });
+        this._send('CHAT_SEND', { text });
         this.audio.playPop();
       });
     });
@@ -363,94 +366,114 @@ class CartagenaApp {
     // Rematch / Back to Lobby
     document.getElementById('btn-rematch')?.addEventListener('click', () => {
       this.modals.gameover?.classList.remove('active');
-      this._switchView('lobby');
+      if (this.isLocalSession) {
+        this._switchView('landing');
+      } else {
+        this._switchView('lobby');
+      }
     });
     document.getElementById('btn-exit-lobby')?.addEventListener('click', () => {
       this.modals.gameover?.classList.remove('active');
-      this.ws.disconnect();
+      if (!this.isLocalSession) {
+        this.ws.disconnect();
+      }
+      this.isLocalSession = false;
       this._switchView('landing');
     });
   }
 
+  _send(type, payload = {}) {
+    if (this.isLocalSession) {
+      this.localCoordinator.send(type, payload);
+    } else {
+      this.ws.send(type, payload);
+    }
+  }
+
   _setupWebSocketHandlers() {
-    this.ws.on('ROOM_JOINED', (data) => {
-      this.roomCode = data.roomCode;
-      this.myPlayerId = data.playerId;
-      this.isHost = data.hostId === data.playerId;
-      this.gameState = data.state;
+    const bindTransport = (source) => {
+      source.on('ROOM_JOINED', (data) => {
+        this.roomCode = data.roomCode;
+        this.myPlayerId = data.playerId;
+        this.isHost = data.hostId === data.playerId;
+        this.gameState = data.state;
 
-      if (data.state.status === 'IN_PROGRESS') {
-        this._switchView('game');
-      } else {
-        this._switchView('lobby');
-      }
-      this._renderLobby();
-      this._renderGame();
-
-      // Render past messages
-      if (data.messages) {
-        this.chatMessagesContainer.innerHTML = '';
-        data.messages.forEach(msg => this._appendChatMessage(msg));
-      }
-    });
-
-    this.ws.on('STATE_UPDATE', (data) => {
-      this.isHost = data.hostId === this.myPlayerId;
-      const prevPlayerId = this.gameState?.currentPlayerId;
-      this.gameState = data.state;
-
-      // Check view transition
-      if (data.state.status === 'IN_PROGRESS' && this.currentView !== 'game') {
-        this._switchView('game');
-        this.audio.playFanfare();
-      }
-
-      // Pass & Play Turn Transition (§2)
-      if (this.isPassAndPlay && data.state.status === 'IN_PROGRESS') {
-        const currentTurnId = data.state.currentPlayerId;
-        if (currentTurnId && this.lastPassTurnPlayerId && currentTurnId !== this.lastPassTurnPlayerId) {
-          const nextPlayer = data.state.players.find(p => p.id === currentTurnId);
-          if (nextPlayer) {
-            const nextNameElem = document.getElementById('pass-device-next-name');
-            const btnNameElem = document.getElementById('btn-reveal-name');
-            if (nextNameElem) nextNameElem.textContent = nextPlayer.name;
-            if (btnNameElem) btnNameElem.textContent = nextPlayer.name;
-            this.modals.passDeviceOverlay?.classList.add('active');
-            this.audio.playPop();
-          }
+        if (data.state.status === 'IN_PROGRESS') {
+          this._switchView('game');
+        } else {
+          this._switchView('lobby');
         }
-        this.lastPassTurnPlayerId = currentTurnId;
-        this.myPlayerId = currentTurnId;
-      }
+        this._renderLobby();
+        this._renderGame();
 
-      this._renderLobby();
-      this._renderGame();
+        // Render past messages
+        if (data.messages) {
+          this.chatMessagesContainer.innerHTML = '';
+          data.messages.forEach(msg => this._appendChatMessage(msg));
+        }
+      });
 
-      // Turn notification
-      if (data.state.status === 'IN_PROGRESS' && data.state.currentPlayerId === this.myPlayerId && prevPlayerId !== this.myPlayerId) {
-        this.audio.playCard();
-        this.audio.vibrate([100, 50, 100]);
-        this._showToast(`🏴‍☠️ ${this.isPassAndPlay ? this.gameState.players.find(p=>p.id===this.myPlayerId)?.name : 'Captain'}! It is your turn! Take up to 3 actions.`);
-      }
+      source.on('STATE_UPDATE', (data) => {
+        this.isHost = data.hostId === this.myPlayerId;
+        const prevPlayerId = this.gameState?.currentPlayerId;
+        this.gameState = data.state;
 
-      // Game Over check
-      if (data.state.status === 'FINISHED') {
-        this._showGameOver(data.state);
-      }
-    });
+        // Check view transition
+        if (data.state.status === 'IN_PROGRESS' && this.currentView !== 'game') {
+          this._switchView('game');
+          this.audio.playFanfare();
+        }
 
-    this.ws.on('CHAT_MESSAGE', (data) => {
-      this._appendChatMessage(data.message);
-      this.audio.playPop();
-      if (!this.isChatOpen) {
-        this.unreadChatCount++;
-        this._updateChatBadge();
-      }
-    });
+        // Pass & Play Turn Transition (§2)
+        if (this.isPassAndPlay && data.state.status === 'IN_PROGRESS') {
+          const currentTurnId = data.state.currentPlayerId;
+          if (currentTurnId && this.lastPassTurnPlayerId && currentTurnId !== this.lastPassTurnPlayerId) {
+            const nextPlayer = data.state.players.find(p => p.id === currentTurnId);
+            if (nextPlayer) {
+              const nextNameElem = document.getElementById('pass-device-next-name');
+              const btnNameElem = document.getElementById('btn-reveal-name');
+              if (nextNameElem) nextNameElem.textContent = nextPlayer.name;
+              if (btnNameElem) btnNameElem.textContent = nextPlayer.name;
+              this.modals.passDeviceOverlay?.classList.add('active');
+              this.audio.playPop();
+            }
+          }
+          this.lastPassTurnPlayerId = currentTurnId;
+          this.myPlayerId = currentTurnId;
+        }
 
-    this.ws.on('ERROR', (data) => {
-      this._showToast(`⚠️ ${data.message || 'Error occurred'}`);
-    });
+        this._renderLobby();
+        this._renderGame();
+
+        // Turn notification
+        if (data.state.status === 'IN_PROGRESS' && data.state.currentPlayerId === this.myPlayerId && prevPlayerId !== this.myPlayerId) {
+          this.audio.playCard();
+          this.audio.vibrate([100, 50, 100]);
+          this._showToast(`🏴‍☠️ ${this.isPassAndPlay ? this.gameState.players.find(p=>p.id===this.myPlayerId)?.name : 'Captain'}! It is your turn! Take up to 3 actions.`);
+        }
+
+        // Game Over check
+        if (data.state.status === 'FINISHED') {
+          this._showGameOver(data.state);
+        }
+      });
+
+      source.on('CHAT_MESSAGE', (data) => {
+        this._appendChatMessage(data.message);
+        this.audio.playPop();
+        if (!this.isChatOpen) {
+          this.unreadChatCount++;
+          this._updateChatBadge();
+        }
+      });
+
+      source.on('ERROR', (data) => {
+        this._showToast(`⚠️ ${data.message || 'Error occurred'}`);
+      });
+    };
+
+    bindTransport(this.ws);
+    bindTransport(this.localCoordinator);
   }
 
   _checkUrlParams() {
@@ -471,12 +494,16 @@ class CartagenaApp {
   }
 
   async _createRoom({ hostName, hostColor, settings }) {
+    this.isLocalSession = false;
     try {
       const res = await fetch(this._getApiUrl('/api/rooms'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ hostName, hostColor, settings })
       });
+      if (!res.ok) {
+        throw new Error(`Server returned HTTP ${res.status}`);
+      }
       const data = await res.json();
       if (!data.success) {
         this._showToast(data.error);
@@ -484,45 +511,6 @@ class CartagenaApp {
       }
 
       this._hideAllModals();
-      this.roomCode = data.roomCode;
-      this.myPlayerId = data.hostId;
-      this.isHost = true;
-
-      this.ws.connect({
-        roomCode: data.roomCode,
-        name: hostName,
-        color: hostColor,
-        token: data.token
-      });
-    } catch (err) {
-      this._showToast('Failed to create room');
-    }
-  }
-
-  _joinRoom(code, name, color) {
-    this._hideAllModals();
-    this.ws.connect({ roomCode: code, name, color });
-  }
-
-  async _startCustomSolo({ name, difficulty, botCount }) {
-    this._hideAllModals();
-    const hostName = name || 'Captain';
-    const hostColor = 'red';
-    const totalSeats = Math.max(botCount + 1, 4);
-    const settings = { maxSeats: totalSeats, quickGame: false, turnTimer: 0, allowUndo: true };
-
-    try {
-      const res = await fetch(this._getApiUrl('/api/rooms'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ hostName, hostColor, settings })
-      });
-      const data = await res.json();
-      if (!data.success) {
-        this._showToast(data.error || 'Failed to start bot match');
-        return;
-      }
-
       this.roomCode = data.roomCode;
       this.myPlayerId = data.hostId;
       this.isHost = true;
@@ -534,70 +522,35 @@ class CartagenaApp {
         color: hostColor,
         token: data.token
       });
-
-      // Add the requested number of bots with selected difficulty
-      setTimeout(() => {
-        for (let i = 0; i < botCount; i++) {
-          this.ws.send('ADD_BOT', { difficulty });
-        }
-        setTimeout(() => {
-          this.ws.send('START_GAME');
-        }, 300);
-      }, 500);
-    } catch (e) {
-      this._showToast('Could not start solo game');
+    } catch (err) {
+      this._showToast('⚠️ Online Multiplayer requires a live game server. For instant play with no server, choose "Play vs Bots" or "Local Pass & Play"!');
     }
   }
 
-  async _startPassAndPlay(playerNames) {
+  _joinRoom(code, name, color) {
+    this.isLocalSession = false;
     this._hideAllModals();
-    const hostName = playerNames[0] || 'Player 1';
-    const hostColor = 'red';
-    const settings = {
-      maxSeats: playerNames.length,
-      quickGame: false,
-      turnTimer: 0,
-      allowUndo: true,
-      isPassAndPlay: true,
-      passAndPlayPlayers: playerNames
-    };
-
-    try {
-      const res = await fetch(this._getApiUrl('/api/rooms'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ hostName, hostColor, settings })
-      });
-      const data = await res.json();
-      if (!data.success) {
-        this._showToast(data.error || 'Failed to start Pass & Play game');
-        return;
-      }
-
-      this.roomCode = data.roomCode;
-      this.myPlayerId = data.hostId;
-      this.isHost = true;
-      this.isPassAndPlay = true;
-      this.lastPassTurnPlayerId = null;
-
-      this.ws.connect({
-        roomCode: data.roomCode,
-        name: hostName,
-        color: hostColor,
-        token: data.token
-      });
-
-      // Start the game automatically once connected
-      setTimeout(() => {
-        this.ws.send('START_GAME');
-      }, 500);
-    } catch (e) {
-      this._showToast('Could not start Pass & Play game');
-    }
+    this.ws.connect({ roomCode: code, name, color });
   }
 
-  async _startQuickSolo() {
-    await this._startCustomSolo({ name: 'You (Captain)', difficulty: 'medium', botCount: 2 });
+  _startCustomSolo({ name, difficulty, botCount }) {
+    this._hideAllModals();
+    this.isLocalSession = true;
+    this.isPassAndPlay = false;
+    this.lastPassTurnPlayerId = null;
+    this.localCoordinator.startSoloGame({ hostName: name, difficulty, botCount });
+  }
+
+  _startPassAndPlay(playerNames) {
+    this._hideAllModals();
+    this.isLocalSession = true;
+    this.isPassAndPlay = true;
+    this.lastPassTurnPlayerId = null;
+    this.localCoordinator.startPassAndPlay(playerNames);
+  }
+
+  _startQuickSolo() {
+    this._startCustomSolo({ name: 'You (Captain)', difficulty: 'medium', botCount: 2 });
   }
 
   _switchView(viewName) {
@@ -912,7 +865,7 @@ class CartagenaApp {
 
   _executeForwardMove(pirateId, cardId) {
     this.audio.playHop();
-    this.ws.send('PLAY_FORWARD', {
+    this._send('PLAY_FORWARD', {
       action: 'FORWARD',
       pirateId,
       cardId
@@ -922,7 +875,7 @@ class CartagenaApp {
 
   _executeBackwardMove(pirateId) {
     this.audio.playCoinClink(2);
-    this.ws.send('MOVE_BACKWARD', {
+    this._send('MOVE_BACKWARD', {
       action: 'BACKWARD',
       pirateId
     });
@@ -1031,7 +984,7 @@ class CartagenaApp {
     const inputEl = isSidebar ? this.sidebarChatInput : this.chatInput;
     const text = inputEl ? inputEl.value.trim() : '';
     if (!text) return;
-    this.ws.send('CHAT_SEND', { text });
+    this._send('CHAT_SEND', { text });
     if (inputEl) inputEl.value = '';
     this.audio.playPop();
   }
