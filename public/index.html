@@ -42,6 +42,7 @@
         💬
         <span class="btn-badge" id="chat-unread-badge">0</span>
       </button>
+      <button class="icon-btn btn-end-game-header" id="btn-end-game-header" title="End Game & Return to Menu" aria-label="End Game" style="display:none; background: rgba(179,38,30,0.25); border-color: #B3261E; color: #FF6B6B;">🚪</button>
     </div>
   </header>
 
@@ -192,10 +193,16 @@
                 <span class="pip-label">3 actions left</span>
               </div>
             </div>
-            <!-- Laptop Board Maximize Toggle -->
-            <button class="btn-toggle-sidebar" id="btn-toggle-sidebar" title="Toggle sidebar to maximize board view">
-              ⛶ Maximize Board
-            </button>
+            <div style="display:flex; align-items:center; gap:0.4rem;">
+              <!-- Laptop Board Maximize Toggle -->
+              <button class="btn-toggle-sidebar" id="btn-toggle-sidebar" title="Toggle sidebar to maximize board view">
+                ⛶ Maximize Board
+              </button>
+              <!-- End Game Button (always visible in turn banner) -->
+              <button class="btn-toggle-sidebar btn-end-game-banner" id="btn-end-game-banner" title="End game and return to menu" style="border-color:#B3261E; background:rgba(179,38,30,0.2); color:#FF6B6B;">
+                🚪 End Game
+              </button>
+            </div>
           </div>
 
           <!-- Opponents Strip -->
@@ -571,6 +578,21 @@
       <div class="gameover-actions-bar" style="display: flex; gap: 1rem; justify-content: center; margin-top: 1.4rem;">
         <button class="btn btn-primary" id="btn-rematch">🔄 Play Again</button>
         <button class="btn btn-secondary" id="btn-exit-lobby">🚪 Exit to Menu</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- End Game Confirmation Modal -->
+  <div class="modal-container" id="end-game-confirm-modal">
+    <div class="parchment-modal-overlay"></div>
+    <div class="parchment-modal-dialog" style="text-align: center; max-width: 440px;">
+      <div style="font-size: 3.5rem; margin-bottom: 0.3rem;">🚪 ⚓</div>
+      <h2 class="diary-heading" style="color: #B3261E;">Abandon Ship?</h2>
+      <p class="diary-subtitle" style="margin-bottom: 0.4rem;">Are you sure you want to end this game?</p>
+      <p style="font-size: 0.95rem; color: #5C3B1E; margin-bottom: 1.5rem;">Your current progress will be lost and you'll return to the main menu.</p>
+      <div style="display: flex; gap: 1rem; justify-content: center;">
+        <button class="btn btn-secondary" id="btn-cancel-end-game" style="font-size: 1.1rem; padding: 0.6rem 1.5rem;">🏴‍☠️ Keep Playing</button>
+        <button class="btn btn-primary" id="btn-confirm-end-game" style="font-size: 1.1rem; padding: 0.6rem 1.5rem; background: linear-gradient(180deg, #D64545 0%, #B3261E 100%); border-color: #7A1919;">🚪 End Game</button>
       </div>
     </div>
   </div>

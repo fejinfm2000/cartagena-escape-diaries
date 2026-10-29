@@ -17,7 +17,7 @@
 }
 
 /* Desktop 2-column layout (No scroll, maximized board area!) */
-@media (min-width: 1024px) {
+@media (min-width: 768px) {
   .game-table-layout {
     display: grid;
     grid-template-columns: 1fr 270px;
@@ -326,7 +326,7 @@
   overflow: hidden;
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 768px) {
   .game-sidebar {
     display: flex;
   }
@@ -866,6 +866,12 @@
   }
   .btn-toggle-sidebar {
     display: none;
+  }
+  /* Always show End Game button even on mobile */
+  .btn-end-game-banner.btn-toggle-sidebar {
+    display: inline-flex !important;
+    font-size: 0.85rem;
+    padding: 0.15rem 0.5rem;
   }
   .action-controls-bar {
     justify-content: center;

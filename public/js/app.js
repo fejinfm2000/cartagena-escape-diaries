@@ -57,8 +57,12 @@ class CartagenaApp {
       botSetup: document.getElementById('bot-setup-modal'),
       passPlay: document.getElementById('pass-play-modal'),
       passDeviceOverlay: document.getElementById('pass-device-overlay'),
-      tutorial: document.getElementById('tutorial-modal')
+      tutorial: document.getElementById('tutorial-modal'),
+      endGameConfirm: document.getElementById('end-game-confirm-modal')
     };
+
+    // End Game button in header
+    this.btnEndGameHeader = document.getElementById('btn-end-game-header');
 
     this.isPassAndPlay = false;
     this.lastPassTurnPlayerId = null;
@@ -383,6 +387,22 @@ class CartagenaApp {
       this.isLocalSession = false;
       this._switchView('landing');
     });
+
+    // End Game buttons (header icon + turn banner button)
+    document.getElementById('btn-end-game-header')?.addEventListener('click', () => {
+      this._showEndGameConfirm();
+    });
+    document.getElementById('btn-end-game-banner')?.addEventListener('click', () => {
+      this._showEndGameConfirm();
+    });
+
+    // End Game Confirmation Modal buttons
+    document.getElementById('btn-cancel-end-game')?.addEventListener('click', () => {
+      this.modals.endGameConfirm?.classList.remove('active');
+    });
+    document.getElementById('btn-confirm-end-game')?.addEventListener('click', () => {
+      this._confirmEndGame();
+    });
   }
 
   _send(type, payload = {}) {
@@ -573,6 +593,11 @@ class CartagenaApp {
         this.views[key].classList.toggle('active', key === viewName);
       }
     });
+
+    // Show/hide End Game button in header based on view
+    if (this.btnEndGameHeader) {
+      this.btnEndGameHeader.style.display = (viewName === 'game') ? 'flex' : 'none';
+    }
 
     if (viewName === 'game') {
       if (window.location.hash !== '#play') {
@@ -1244,6 +1269,41 @@ class CartagenaApp {
     this._toastTimeout = setTimeout(() => {
       toast.classList.remove('visible');
     }, 3200);
+  }
+
+  _showEndGameConfirm() {
+    this.modals.endGameConfirm?.classList.add('active');
+    this.audio.playPop();
+  }
+
+  _confirmEndGame() {
+    // Close confirmation modal
+    this.modals.endGameConfirm?.classList.remove('active');
+    // Close game over modal if open
+    this.modals.gameover?.classList.remove('active');
+
+    // Clear saved session
+    localStorage.removeItem('cartagena_saved_session');
+
+    // Disconnect online session if applicable
+    if (!this.isLocalSession) {
+      this.ws.disconnect();
+    }
+
+    // Reset state
+    this.isLocalSession = false;
+    this.isPassAndPlay = false;
+    this.gameState = null;
+    this.myPlayerId = null;
+    this.roomCode = null;
+    this.selectedCard = null;
+    this.selectedPirateId = null;
+    this.actionMode = null;
+
+    // Navigate to landing
+    this._switchView('landing');
+    this._showToast('🏴‍☠️ You have abandoned the escape. Return to try again, Captain!');
+    this.audio.playCannon();
   }
 }
 
