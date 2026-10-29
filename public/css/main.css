@@ -57,6 +57,25 @@ body {
   overflow: hidden;
 }
 
+/* Suppress Netlify Badge & Drawer */
+netlify-drawer,
+[data-netlify-drawer],
+#netlify-drawer,
+.netlify-drawer,
+[class*="netlify-drawer"],
+[class*="feedback-badge"],
+iframe[title*="Netlify"],
+iframe[src*="netlify"],
+div[data-netlify-badge],
+[id*="netlify-feedback"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
 /* App Header */
 .app-header {
   height: 48px;

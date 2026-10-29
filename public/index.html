@@ -650,6 +650,20 @@
         });
       });
     }
+
+    // Auto-remove any injected Netlify badges or drawers
+    const stripNetlifyBadge = () => {
+      document.querySelectorAll('netlify-drawer, [data-netlify-drawer], [class*="netlify-drawer"], iframe[title*="Netlify"]').forEach(el => el.remove());
+      document.querySelectorAll('div, a, button, span').forEach(el => {
+        if (el.textContent && el.textContent.includes('Powered by Netlify') && el.children.length < 4) {
+          const container = el.closest('div[style*="fixed"], div[style*="position"], netlify-drawer') || el;
+          container.remove();
+        }
+      });
+    };
+    window.addEventListener('DOMContentLoaded', stripNetlifyBadge);
+    const badgeObserver = new MutationObserver(stripNetlifyBadge);
+    badgeObserver.observe(document.documentElement, { childList: true, subtree: true });
   </script>
 </body>
 </html>
