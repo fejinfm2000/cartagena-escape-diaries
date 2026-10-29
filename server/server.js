@@ -184,6 +184,10 @@ wss.on('connection', (ws, req) => {
           room.addChatMessage(player.id, msg.text);
           break;
 
+        case 'LEAVE_GAME':
+          room.removePlayer(player.id);
+          break;
+
         case 'PING':
           ws.send(JSON.stringify({ type: 'PONG', ts: Date.now() }));
           break;

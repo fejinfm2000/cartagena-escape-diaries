@@ -18,7 +18,10 @@ export const PLAYER_COLORS = [
   { id: 'blue', name: 'Deep Sea Raider', hex: '#3F7CD8', hatType: 'bandana' },
   { id: 'green', name: 'Tortuga Smuggler', hex: '#3FA66B', hatType: 'bicorne' },
   { id: 'yellow', name: 'Golden Galleon', hex: '#E5B93B', hatType: 'feather' },
-  { id: 'purple', name: 'Shadow Corsair', hex: '#8E5BC9', hatType: 'beret' }
+  { id: 'purple', name: 'Shadow Corsair', hex: '#8E5BC9', hatType: 'beret' },
+  { id: 'orange', name: 'Wildfire Swashbuckler', hex: '#FF7A30', hatType: 'tricorn' },
+  { id: 'teal', name: 'Kraken Hunter', hex: '#14B8A6', hatType: 'bandana' },
+  { id: 'pink', name: 'Siren Corsair', hex: '#E64980', hatType: 'feather' }
 ];
 
 export const JAIL_INDEX = 0;

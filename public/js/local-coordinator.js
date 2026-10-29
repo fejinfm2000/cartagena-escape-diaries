@@ -51,7 +51,7 @@ export class LocalCoordinator {
     }
   }
 
-  startSoloGame({ hostName = 'Captain', difficulty = 'medium', botCount = 2 }) {
+  startSoloGame({ hostName = 'Captain', hostColor = 'red', difficulty = 'medium', botCount = 2 }) {
     if (this.botTimer) clearTimeout(this.botTimer);
 
     this.isPassAndPlay = false;
@@ -76,20 +76,20 @@ export class LocalCoordinator {
     this.engine.addPlayer({
       id: this.hostId,
       name: hostName || 'Captain',
-      color: 'red',
+      color: hostColor || 'red',
       isBot: false
     });
 
-    // 2. Add bots with chosen difficulty
-    const botNames = ['Barnaby', 'Calico', 'Pegleg', 'One-Eye', 'Morgan'];
-    const colors = ['blue', 'green', 'yellow', 'purple'];
+    // 2. Add bots with chosen difficulty and dynamic colors
+    const botNames = ['Barnaby', 'Calico', 'Pegleg', 'One-Eye', 'Morgan', 'Silver', 'Blackbeard', 'Bonaventure'];
+    const availableColors = PLAYER_COLORS.map(c => c.id).filter(c => c !== hostColor);
     for (let i = 0; i < botCount; i++) {
       const bId = `bot_${i + 1}`;
       const diffTag = difficulty.charAt(0).toUpperCase() + difficulty.slice(1);
       this.engine.addPlayer({
         id: bId,
         name: `Bot ${botNames[i % botNames.length]} (${diffTag})`,
-        color: colors[i % colors.length],
+        color: availableColors[i % availableColors.length],
         isBot: true,
         botDifficulty: difficulty
       });
@@ -228,6 +228,20 @@ export class LocalCoordinator {
             };
             this.messages.push(chatMsg);
             this.emit('CHAT_MESSAGE', { message: chatMsg });
+          }
+          break;
+
+        case 'LEAVE_GAME':
+          if (this.engine.status === 'IN_PROGRESS') {
+            const current = this.engine.getCurrentPlayer();
+            this.addSystemMessage(`🚪 A captain has left the game!`);
+            const activePlayers = this.engine.players.filter(p => p.id !== (payload.playerId || this.hostId));
+            if (activePlayers.length === 1) {
+              this.engine.status = 'GAME_OVER';
+              this.engine.winner = activePlayers[0].id;
+              this.addSystemMessage(`🏆 ${activePlayers[0].name} WINS! Other player left.`);
+              this._broadcastState();
+            }
           }
           break;
 

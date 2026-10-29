@@ -61,11 +61,18 @@ class CartagenaApp {
       passDeviceOverlay: document.getElementById('pass-device-overlay'),
       tutorial: document.getElementById('tutorial-modal'),
       endGameConfirm: document.getElementById('end-game-confirm-modal'),
-      serverConfig: document.getElementById('server-config-modal')
+      serverConfig: document.getElementById('server-config-modal'),
+      theme: document.getElementById('theme-modal')
     };
 
     // End Game button in header
     this.btnEndGameHeader = document.getElementById('btn-end-game-header');
+    this.btnThemeToggle = document.getElementById('theme-toggle-btn');
+
+    // Atmosphere & Theme Customization (§4)
+    this.currentTheme = localStorage.getItem('cartagena_theme') || 'midnight';
+    this.preferredColor = localStorage.getItem('cartagena_preferred_color') || 'red';
+    this._applyTheme(this.currentTheme);
 
     this.isPassAndPlay = false;
     this.lastPassTurnPlayerId = null;
@@ -164,7 +171,7 @@ class CartagenaApp {
       const quickGame = !!document.getElementById('create-quick-mode')?.checked;
       const turnTimer = parseInt(document.getElementById('create-timer')?.value, 10) || 0;
 
-      await this._createRoom({ hostName, hostColor: 'red', settings: { maxSeats, quickGame, turnTimer, allowUndo: true } });
+      await this._createRoom({ hostName, hostColor: this.preferredColor || 'red', settings: { maxSeats, quickGame, turnTimer, allowUndo: true } });
     });
 
     // Join Room Submit (Simplified Name & Code only)
@@ -174,7 +181,7 @@ class CartagenaApp {
       const name = document.getElementById('join-player-name').value.trim() || 'Buccaneer';
 
       if (!code) return;
-      this._joinRoom(code, name, 'blue');
+      this._joinRoom(code, name, this.preferredColor || 'blue');
     });
 
     // Bot Setup Submit (§1 & §4: Choose Difficulty & Bot Count)
@@ -183,7 +190,7 @@ class CartagenaApp {
       const name = document.getElementById('bot-player-name').value.trim() || 'Captain';
       const difficulty = document.querySelector('input[name="bot-difficulty"]:checked')?.value || 'medium';
       const botCount = parseInt(document.getElementById('bot-count-select').value, 10) || 2;
-      await this._startCustomSolo({ name, difficulty, botCount });
+      await this._startCustomSolo({ name, difficulty, botCount, hostColor: this.preferredColor || 'red' });
     });
 
     // Pass & Play Player Count Change (§2)
@@ -507,6 +514,25 @@ class CartagenaApp {
     document.getElementById('btn-confirm-end-game')?.addEventListener('click', () => {
       this._confirmEndGame();
     });
+
+    // Theme & Atmosphere Selector (§4)
+    this.btnThemeToggle?.addEventListener('click', () => {
+      this._renderThemeSwatches();
+      this._applyTheme(this.currentTheme);
+      this._showModal('theme');
+      this.audio.playPop();
+    });
+
+    document.querySelectorAll('#theme-options-grid .theme-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const themeId = card.getAttribute('data-theme');
+        if (themeId) {
+          this._applyTheme(themeId);
+          this.audio.playHop();
+          this._showToast(`Atmosphere set to: ${card.querySelector('.theme-title')?.textContent || themeId}`);
+        }
+      });
+    });
   }
 
   _send(type, payload = {}) {
@@ -688,12 +714,12 @@ class CartagenaApp {
     this.ws.connect({ roomCode: code, name, color });
   }
 
-  _startCustomSolo({ name, difficulty, botCount }) {
+  _startCustomSolo({ name, difficulty, botCount, hostColor }) {
     this._hideAllModals();
     this.isLocalSession = true;
     this.isPassAndPlay = false;
     this.lastPassTurnPlayerId = null;
-    this.localCoordinator.startSoloGame({ hostName: name, difficulty, botCount });
+    this.localCoordinator.startSoloGame({ hostName: name, hostColor: hostColor || this.preferredColor || 'red', difficulty, botCount });
   }
 
   _startPassAndPlay(playerNames) {
@@ -772,6 +798,52 @@ class CartagenaApp {
 
   _hideAllModals() {
     Object.values(this.modals).forEach(m => m?.classList.remove('active'));
+  }
+
+  // --- Atmosphere & Theme Customization (§4) ---
+
+  _applyTheme(themeId) {
+    this.currentTheme = themeId;
+    if (themeId === 'midnight') {
+      document.body.removeAttribute('data-theme');
+    } else {
+      document.body.setAttribute('data-theme', themeId);
+    }
+    localStorage.setItem('cartagena_theme', themeId);
+
+    // Update active state in theme modal cards
+    document.querySelectorAll('#theme-options-grid .theme-card').forEach(card => {
+      card.classList.toggle('active', card.getAttribute('data-theme') === themeId);
+    });
+  }
+
+  _setPreferredColor(colorId) {
+    this.preferredColor = colorId;
+    localStorage.setItem('cartagena_preferred_color', colorId);
+
+    // Update active state in swatches
+    document.querySelectorAll('.crew-color-swatches .color-swatch-btn').forEach(swatch => {
+      swatch.classList.toggle('selected', swatch.getAttribute('data-color') === colorId);
+    });
+    const colName = PLAYER_COLORS.find(c => c.id === colorId)?.name || colorId;
+    this._showToast(`🏴‍☠️ Preferred crew color: ${colName}`);
+    this.audio.playPop();
+  }
+
+  _renderThemeSwatches() {
+    const container = document.getElementById('theme-color-swatches');
+    if (!container) return;
+    container.innerHTML = '';
+    PLAYER_COLORS.forEach(col => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = `color-swatch-btn ${col.id === this.preferredColor ? 'selected' : ''}`;
+      btn.setAttribute('data-color', col.id);
+      btn.title = col.name;
+      btn.style.backgroundColor = col.hex;
+      btn.addEventListener('click', () => this._setPreferredColor(col.id));
+      container.appendChild(btn);
+    });
   }
 
   // --- Rendering UI Sections ---
@@ -880,8 +952,6 @@ class CartagenaApp {
 
     const total = myPlayer.pirates.length;
     const onBoat = myPlayer.pirates.filter(p => p.position === BOAT_INDEX).length;
-    const inJail = myPlayer.pirates.filter(p => p.position === JAIL_INDEX).length;
-    const inTunnel = total - onBoat - inJail;
 
     if (this.crewCountSummary) {
       this.crewCountSummary.textContent = `${onBoat}/${total} ⛵`;
@@ -889,44 +959,78 @@ class CartagenaApp {
 
     if (this.crewPiratesList) {
       this.crewPiratesList.innerHTML = '';
-      myPlayer.pirates.forEach(pirate => {
-        const item = document.createElement('div');
-        const isSelected = this.selectedPirateId === pirate.id;
-        item.className = `crew-pirate-item ${isSelected ? 'selected' : ''}`;
-        
-        let locBadge = '';
-        let locText = '';
-        if (pirate.position === JAIL_INDEX) {
-          locBadge = `<span class="crew-loc-badge crew-loc-jail">🔒 Jail</span>`;
-          locText = 'Dungeon (Start)';
-        } else if (pirate.position === BOAT_INDEX) {
-          locBadge = `<span class="crew-loc-badge crew-loc-boat">⛵ Escaped</span>`;
-          locText = 'Safe on Boat!';
-        } else {
-          const space = this.gameState.board[pirate.position];
-          const symMeta = SYMBOL_META[space?.symbol] || { icon: '❓', label: space?.symbol || '' };
-          locBadge = `<span class="crew-loc-badge crew-loc-tunnel">${symMeta.icon} #${pirate.position}</span>`;
-          locText = `${symMeta.label}`;
-        }
 
-        item.innerHTML = `
-          <div style="display:flex; align-items:center; gap:0.4rem;">
-            <span>☠️ <strong>#${pirate.indexNumber || 1}</strong></span>
-            <span style="font-size:0.8rem; color:#6D4C2B;">(${locText})</span>
-          </div>
-          <div>${locBadge}</div>
+      // Render all players' crews so every player can see where everyone is!
+      this.gameState.players.forEach(player => {
+        const isSelf = player.id === this.myPlayerId;
+        const colMeta = PLAYER_COLORS.find(c => c.id === player.color) || { hex: '#D64545' };
+
+        const sectionHeader = document.createElement('div');
+        sectionHeader.className = 'crew-roster-player-header';
+        sectionHeader.style.cssText = `display:flex; align-items:center; justify-content:space-between; padding:0.4rem 0.6rem; margin-top:0.4rem; background:rgba(0,0,0,0.06); border-radius:5px; border-left:4px solid ${colMeta.hex}; font-weight:700; font-size:0.88rem; cursor:pointer;`;
+        sectionHeader.title = 'Click to beacon this player on board';
+        sectionHeader.innerHTML = `
+          <span>🏴‍☠️ ${player.name} ${isSelf ? '(You)' : ''}</span>
+          <span style="font-size:0.75rem; color:#6D4C2B;">🃏 ${player.cardCount} | ⛵ ${player.piratesOnBoat}/${this.gameState.piratesPerPlayer}</span>
         `;
-
-        item.addEventListener('click', () => {
-          if (pirate.position === BOAT_INDEX) {
-            this._showToast('This pirate is already safe on the escape boat! ⛵');
-            return;
-          }
-          this._handlePirateSelected(pirate.id);
-          this.crewLocatorPopover?.classList.remove('active');
+        sectionHeader.addEventListener('click', () => {
+          this.boardRenderer.highlightCrewBeacons(player.id);
+          this.audio.playPop();
         });
+        this.crewPiratesList.appendChild(sectionHeader);
 
-        this.crewPiratesList.appendChild(item);
+        (player.pirates || []).forEach(pirate => {
+          const item = document.createElement('div');
+          const isSelected = this.selectedPirateId === pirate.id;
+          item.className = `crew-pirate-item ${isSelected ? 'selected' : ''}`;
+          
+          let locBadge = '';
+          let locText = '';
+          if (pirate.position === JAIL_INDEX) {
+            locBadge = `<span class="crew-loc-badge crew-loc-jail">🔒 Jail</span>`;
+            locText = 'Dungeon (Start)';
+          } else if (pirate.position === BOAT_INDEX) {
+            locBadge = `<span class="crew-loc-badge crew-loc-boat">⛵ Escaped</span>`;
+            locText = 'Safe on Boat!';
+          } else {
+            const space = this.gameState.board[pirate.position];
+            const symMeta = SYMBOL_META[space?.symbol] || { icon: '❓', label: space?.symbol || '' };
+            locBadge = `<span class="crew-loc-badge crew-loc-tunnel">${symMeta.icon} #${pirate.position}</span>`;
+            locText = `${symMeta.label}`;
+          }
+
+          item.innerHTML = `
+            <div style="display:flex; align-items:center; gap:0.4rem;">
+              <span style="color:${colMeta.hex};">☠️ <strong>#${pirate.indexNumber || 1}</strong></span>
+              <span style="font-size:0.8rem; color:#6D4C2B;">(${locText})</span>
+            </div>
+            <div>${locBadge}</div>
+          `;
+
+          item.addEventListener('click', () => {
+            if (isSelf) {
+              if (pirate.position === BOAT_INDEX) {
+                this._showToast('This pirate is already safe on the escape boat! ⛵');
+                return;
+              }
+              this._handlePirateSelected(pirate.id);
+              this.crewLocatorPopover?.classList.remove('active');
+            } else {
+              // Highlight opponent pirate on board and scroll to it
+              const targetEl = document.getElementById(`space-group-${pirate.position}`);
+              if (targetEl && this.boardViewport) {
+                const rect = targetEl.getBoundingClientRect();
+                const parentRect = this.boardViewport.getBoundingClientRect();
+                this.boardViewport.scrollBy({ top: rect.top - parentRect.top - 80, behavior: 'smooth' });
+              }
+              this.boardRenderer.highlightCrewBeacons(player.id);
+              this._showToast(`Locating ${player.name}'s pirate #${pirate.indexNumber || 1} at ${locText}`);
+              this.audio.playPop();
+            }
+          });
+
+          this.crewPiratesList.appendChild(item);
+        });
       });
     }
   }
@@ -937,9 +1041,16 @@ class CartagenaApp {
       const isCurrent = p.id === this.gameState.currentPlayerId;
       const isMe = p.id === this.myPlayerId;
       const colMeta = PLAYER_COLORS.find(c => c.id === p.color) || { hex: '#D64545' };
+      const pirates = p.pirates || [];
+      const inJail = pirates.filter(pir => pir.position === JAIL_INDEX).length;
+      const onBoat = pirates.filter(pir => pir.position === BOAT_INDEX).length;
+      const onPath = pirates.filter(pir => pir.position > JAIL_INDEX && pir.position < BOAT_INDEX);
+      const pathLocs = onPath.map(pir => `#${pir.position}`).join(', ');
 
       const card = document.createElement('div');
       card.className = `opponent-card ${isCurrent ? 'active-turn' : ''} ${isMe ? 'is-self' : ''}`;
+      card.title = `Click to locate & beacon ${p.name}'s crew across the tunnel`;
+      card.style.cursor = 'pointer';
       card.innerHTML = `
         <div class="opponent-avatar" style="border-color: ${colMeta.hex}; background-color: ${colMeta.hex}22;">
           <span style="color: ${colMeta.hex}">🏴‍☠️</span>
@@ -948,10 +1059,20 @@ class CartagenaApp {
           <span class="opponent-name">${p.name} ${isMe ? '(You)' : ''}</span>
           <div class="opponent-stats">
             <span class="stat-badge" title="Cards in hand">🃏 ${p.cardCount}</span>
-            <span class="stat-badge" title="Pirates escaped to boat">⛵ ${p.piratesOnBoat}/${this.gameState.piratesPerPlayer}</span>
+            <span class="stat-badge" title="Pirates in Jail">🔒 ${inJail}</span>
+            <span class="stat-badge" title="Pirates in tunnel: ${pathLocs || 'none'}">🏃 ${onPath.length}</span>
+            <span class="stat-badge" title="Escaped to boat">⛵ ${onBoat}/${this.gameState.piratesPerPlayer}</span>
           </div>
         </div>
       `;
+
+      card.addEventListener('click', () => {
+        this.boardRenderer.highlightCrewBeacons(p.id);
+        const locDesc = onPath.length > 0 ? `Tunnel: ${pathLocs}` : inJail > 0 ? 'All in Jail' : 'All Escaped!';
+        this._showToast(`🔍 Showing ${p.name}'s crew: ${locDesc}`);
+        this.audio.playPop();
+      });
+
       this.opponentsContainer.appendChild(card);
     });
   }
@@ -1400,6 +1521,9 @@ class CartagenaApp {
   }
 
   _confirmEndGame() {
+    // Notify room/peers before closing session
+    this._send('LEAVE_GAME', { playerId: this.myPlayerId });
+
     // Close confirmation modal
     this.modals.endGameConfirm?.classList.remove('active');
     // Close game over modal if open
@@ -1410,7 +1534,7 @@ class CartagenaApp {
 
     // Disconnect online session if applicable
     if (!this.isLocalSession) {
-      this.ws.disconnect();
+      setTimeout(() => this.ws.disconnect(), 100);
     }
 
     // Reset state

@@ -37,6 +37,7 @@
       <span class="brand-subtitle">Escape Diaries</span>
     </div>
     <div class="header-actions">
+      <button class="icon-btn theme-toggle-btn" id="theme-toggle-btn" title="Choose Atmosphere & Theme" aria-label="Theme">🎨</button>
       <button class="icon-btn mute-toggle-btn" id="mute-toggle-btn" title="Toggle Sound" aria-label="Toggle Sound">🔊</button>
       <button class="icon-btn chat-toggle-btn" id="chat-toggle-btn" title="Open Crew Chat" aria-label="Open Crew Chat">
         💬
@@ -635,6 +636,65 @@
       </form>
     </div>
   </div>
+
+  <!-- Theme & Customization Modal (§4) -->
+  <div class="modal-container" id="theme-modal">
+    <div class="parchment-modal-overlay"></div>
+    <div class="parchment-modal-dialog" style="max-width: 540px;">
+      <div class="parchment-header">
+        <h2 class="diary-heading">🎨 Atmosphere &amp; Themes</h2>
+        <button class="close-diary-btn modal-close-btn">&times;</button>
+      </div>
+      <p style="font-size: 0.92rem; color: #5C3B1E; margin-bottom: 0.8rem;">
+        Choose your preferred Cartagena atmospheric vibe. Changes apply instantly across the whole game!
+      </p>
+
+      <div class="theme-grid" id="theme-options-grid">
+        <div class="theme-card active" data-theme="midnight">
+          <div class="theme-preview-pill" style="background: radial-gradient(circle, #0F172A 0%, #0A0E17 100%); color: #E5B93B; border-color: #E5B93B;">🏴‍☠️</div>
+          <div class="theme-title">Midnight Tavern</div>
+          <div class="theme-desc">Classic deep navy fortress night and rich treasure gold.</div>
+        </div>
+
+        <div class="theme-card" data-theme="caribbean">
+          <div class="theme-preview-pill" style="background: radial-gradient(circle, #156170 0%, #082E38 100%); color: #00D2D3; border-color: #00D2D3;">🌊</div>
+          <div class="theme-title">Caribbean Lagoon</div>
+          <div class="theme-desc">Sunken azure depths, vibrant turquoise waters and cyan glows.</div>
+        </div>
+
+        <div class="theme-card" data-theme="ghost">
+          <div class="theme-preview-pill" style="background: radial-gradient(circle, #18523A 0%, #0B1914 100%); color: #2ECC71; border-color: #2ECC71;">👻</div>
+          <div class="theme-title">Phantom Ghost Ship</div>
+          <div class="theme-desc">Spectral cursed emerald mist, phantom lanterns and eerie glow.</div>
+        </div>
+
+        <div class="theme-card" data-theme="volcano">
+          <div class="theme-preview-pill" style="background: radial-gradient(circle, #511919 0%, #210D0D 100%); color: #E67E22; border-color: #E67E22;">🌋</div>
+          <div class="theme-title">Volcanic Outpost</div>
+          <div class="theme-desc">Molten magma red, scorched black stone and smoldering embers.</div>
+        </div>
+
+        <div class="theme-card" data-theme="cartographer">
+          <div class="theme-preview-pill" style="background: radial-gradient(circle, #46301C 0%, #241A11 100%); color: #C08A3E; border-color: #C08A3E;">📜</div>
+          <div class="theme-title">Old Cartographer</div>
+          <div class="theme-desc">Aged sepia navigator parchment, warm leather and antique bronze.</div>
+        </div>
+      </div>
+
+      <div style="margin-top: 1.2rem; border-top: 1px dashed rgba(92, 59, 30, 0.3); padding-top: 1rem;">
+        <h4 style="font-family: var(--font-pirate); font-size: 1.25rem; color: #5C3B1E; margin-bottom: 0.3rem;">🎨 Your Preferred Crew Color</h4>
+        <p style="font-size: 0.82rem; color: #7A5736; margin-bottom: 0.6rem;">Select the pirate crew uniform color you prefer when joining or starting games:</p>
+        <div class="crew-color-swatches" id="theme-color-swatches">
+          <!-- Populated dynamically from 8 PLAYER_COLORS -->
+        </div>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; margin-top: 1.2rem;">
+        <button class="btn btn-primary modal-close-btn" style="padding: 0.5rem 1.4rem;">⚓ Set Sail</button>
+      </div>
+    </div>
+  </div>
+
 
   <!-- Application Main Script -->
   <script type="module" src="js/app.js"></script>

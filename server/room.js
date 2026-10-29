@@ -177,13 +177,40 @@ export class Room {
       playerSockets.delete(socket);
       if (playerSockets.size === 0) {
         this.clients.delete(playerId);
-        const player = this.engine.players.find(p => p.id === playerId);
-        if (player) {
-          player.connected = false;
-          this.broadcastState();
+        this.handlePlayerDisconnect(playerId);
+      }
+    }
+  }
+
+  handlePlayerDisconnect(playerId) {
+    const player = this.engine.players.find(p => p.id === playerId);
+    if (!player) return;
+    player.connected = false;
+    this.addSystemMessage(`🚪 Captain ${player.name} has left the game!`);
+
+    if (this.engine.status === 'IN_PROGRESS') {
+      // If it was their turn, end turn and pass immediately
+      if (this.engine.currentPlayerId === playerId) {
+        this.engine.endTurn();
+        this._startTurnTimer();
+      }
+
+      // Check remaining active players
+      const activePlayers = this.engine.players.filter(p => p.connected || p.isBot);
+      if (activePlayers.length < 2 && this.engine.players.length >= 2) {
+        const winner = activePlayers[0];
+        if (winner) {
+          this.engine.status = 'GAME_OVER';
+          this.engine.winner = winner.id;
+          this.addSystemMessage(`🏆 ${winner.name} WINS! All other players left the escape.`);
         }
       }
     }
+    this.broadcastState();
+  }
+
+  removePlayer(playerId) {
+    this.handlePlayerDisconnect(playerId);
   }
 
   startGame(requestingPlayerId) {

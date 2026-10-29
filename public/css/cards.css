@@ -100,21 +100,60 @@
   white-space: nowrap;
 }
 
-/* Mobile responsive card size */
-@media (max-width: 640px) {
+/* Mobile responsive card size - compact, touch-friendly, never clipped */
+@media (max-width: 768px) {
   .hand-fan-container {
-    min-height: 95px;
-    padding: 0.2rem 0.4rem;
+    min-height: 78px;
+    padding: 0.15rem 0.3rem;
+  }
+  .hand-cards-list {
+    gap: -6px;
+    padding: 0.1rem 0.2rem;
   }
   .pirate-card {
-    width: 62px;
-    height: 88px;
-    margin: 0 2px;
+    width: 50px;
+    height: 72px;
+    margin: 0 1.5px;
+    border-width: 1.5px;
+    border-radius: 5px;
+  }
+  .card-inner {
+    padding: 2px 2px;
+  }
+  .card-corner {
+    font-size: 0.68rem;
   }
   .card-icon {
-    font-size: 1.35rem;
+    font-size: 1.15rem;
   }
   .card-name {
-    font-size: 0.7rem;
+    font-size: 0.6rem;
+    letter-spacing: 0;
+  }
+  .pirate-card:hover {
+    transform: translateY(-8px) scale(1.05);
+  }
+  .pirate-card.card-selected {
+    transform: translateY(-14px) scale(1.08);
+  }
+}
+
+@media (max-width: 400px) {
+  .hand-fan-container {
+    min-height: 68px;
+  }
+  .pirate-card {
+    width: 44px;
+    height: 65px;
+    margin: 0 0.5px;
+  }
+  .card-corner {
+    font-size: 0.6rem;
+  }
+  .card-icon {
+    font-size: 0.95rem;
+  }
+  .card-name {
+    font-size: 0.5rem;
   }
 }
