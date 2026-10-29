@@ -24,6 +24,7 @@ class CartagenaApp {
     this.roomCode = null;
     this.isHost = false;
     this.gameState = null;
+    this.roomSettings = null;
 
     // Selection state for turn actions
     this.selectedCard = null;
@@ -485,6 +486,7 @@ class CartagenaApp {
         this.myPlayerId = data.playerId;
         this.isHost = data.hostId === data.playerId;
         this.gameState = data.state;
+        this.roomSettings = data.settings || {};
 
         if (data.state.status === 'IN_PROGRESS') {
           this._switchView('game');
@@ -503,6 +505,7 @@ class CartagenaApp {
 
       source.on('STATE_UPDATE', (data) => {
         this.isHost = data.hostId === this.myPlayerId;
+        if (data.settings) this.roomSettings = data.settings;
         const prevPlayerId = this.gameState?.currentPlayerId;
         this.gameState = data.state;
 
@@ -744,7 +747,7 @@ class CartagenaApp {
     const slotsContainer = document.getElementById('lobby-player-slots');
     slotsContainer.innerHTML = '';
 
-    const maxSeats = this.gameState.players.length >= 4 ? 5 : 4;
+    const maxSeats = this.roomSettings?.maxSeats || (this.gameState.players.length >= 4 ? 5 : 4);
     for (let i = 0; i < maxSeats; i++) {
       const player = this.gameState.players[i];
       const slot = document.createElement('div');
@@ -764,8 +767,8 @@ class CartagenaApp {
         slot.innerHTML = `
           <div class="slot-badge empty-badge">+</div>
           <div class="slot-info">
-            <span class="slot-name">Waiting for Pirate...</span>
-            <span class="slot-type">Invite a friend or add a bot</span>
+            <span class="slot-name">Waiting for Pirate ${i + 1}...</span>
+            <span class="slot-type">Invite a friend or recruit a bot</span>
           </div>
         `;
       }
@@ -778,7 +781,8 @@ class CartagenaApp {
     if (this.isHost) {
       startBtn.style.display = 'inline-block';
       startBtn.disabled = this.gameState.players.length < 2;
-      botControls.style.display = 'flex';
+      const isRoomFull = this.gameState.players.length >= maxSeats;
+      botControls.style.display = isRoomFull ? 'none' : 'flex';
     } else {
       startBtn.style.display = 'none';
       botControls.style.display = 'none';
