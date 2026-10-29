@@ -113,8 +113,9 @@ class CartagenaApp {
     this.chatToggleBtn = document.getElementById('chat-toggle-btn');
     this.chatBadge = document.getElementById('chat-unread-badge');
 
-    // Sidebar Next Step & Chat
+    // Sidebar Next Step & Chat + Mobile Instruction
     this.nextStepBody = document.getElementById('next-step-body');
+    this.mobileInstructionText = document.getElementById('mobile-instruction-text');
     this.sidebarChatMessages = document.getElementById('sidebar-chat-messages');
     this.sidebarChatInput = document.getElementById('sidebar-chat-input');
     this.sidebarChatSendBtn = document.getElementById('sidebar-chat-send-btn');
@@ -1333,85 +1334,108 @@ class CartagenaApp {
   }
 
   _updateNextStepInstructions() {
-    if (!this.nextStepBody) return;
+    if (!this.nextStepBody && !this.mobileInstructionText) return;
     if (!this.gameState || this.gameState.status !== 'IN_PROGRESS') {
-      this.nextStepBody.innerHTML = `
-        <div class="next-step-prompt">Awaiting Escape Charter...</div>
-        <div class="next-step-detail">Join or start a match to break out of Cartagena Fortress!</div>
-      `;
+      if (this.nextStepBody) {
+        this.nextStepBody.innerHTML = `
+          <div class="next-step-prompt">Awaiting Escape Charter...</div>
+          <div class="next-step-detail">Join or start a match to break out of Cartagena Fortress!</div>
+        `;
+      }
+      if (this.mobileInstructionText) {
+        this.mobileInstructionText.textContent = '⚓ Cartagena Escape in session. Waiting for game start...';
+      }
       return;
     }
 
     const isMyTurn = this.gameState.currentPlayerId === this.myPlayerId;
     const activePlayer = this.gameState.players.find(p => p.id === this.gameState.currentPlayerId);
     const actionsLeft = this.gameState.actionsLeft || 0;
+    const activeName = activePlayer?.name || 'Matey';
+
+    let mobileText = '';
 
     if (!isMyTurn) {
-      this.nextStepBody.innerHTML = `
-        <div class="next-step-action-tag" style="background:#14505C; color:#F2E2BA;">WAITING FOR CREWMATE</div>
-        <div class="next-step-prompt">Captain ${this._escapeHtml(activePlayer?.name || 'Pirate')} is acting...</div>
-        <div class="next-step-detail">Watch their moves on the board tunnel. Prepare your strategy!</div>
-      `;
-      return;
-    }
-
-    // It's my turn!
-    const myPlayer = this.gameState.players.find(p => p.id === this.myPlayerId);
-    const myHand = myPlayer?.hand || [];
-
-    let html = `
-      <div class="next-step-action-tag">ACTION ${4 - actionsLeft} OF 3 (${actionsLeft} LEFT)</div>
-    `;
-
-    if (this.actionMode === 'BACKWARD') {
-      if (this.selectedPirateId) {
-        html += `
-          <div class="next-step-prompt">↩️ Pirate Selected!</div>
-          <div class="next-step-detail">Retreating to nearest space with 1 or 2 pirates to gather fresh cards!</div>
-        `;
-      } else {
-        html += `
-          <div class="next-step-prompt">👉 Step 1: Select a Pirate to Retreat</div>
-          <div class="next-step-detail">Click any of your pirates in the tunnel. It will retreat to the nearest space holding 1 or 2 pirates and gain you 1 or 2 free cards!</div>
+      if (this.nextStepBody) {
+        this.nextStepBody.innerHTML = `
+          <div class="next-step-action-tag" style="background:#14505C; color:#F2E2BA;">WAITING FOR CREWMATE</div>
+          <div class="next-step-prompt">Captain ${this._escapeHtml(activeName)} is acting...</div>
+          <div class="next-step-detail">Watch their moves on the board tunnel. Prepare your strategy!</div>
         `;
       }
-    } else if (this.selectedCard && this.selectedPirateId) {
-      const cardMeta = SYMBOL_META[this.selectedCard.symbol] || { label: this.selectedCard.symbol, icon: '❓' };
-      html += `
-        <div class="next-step-prompt">🏃 Ready to Leap!</div>
-        <div class="next-step-detail">Dashing forward with <strong>${cardMeta.icon} ${cardMeta.label}</strong> to the highlighted destination!</div>
-      `;
-    } else if (this.selectedCard) {
-      const cardMeta = SYMBOL_META[this.selectedCard.symbol] || { label: this.selectedCard.symbol, icon: '❓' };
-      html += `
-        <div class="next-step-prompt">👉 Step 2: Choose a Pirate to Move</div>
-        <div class="next-step-detail">Card <strong>${cardMeta.icon} ${cardMeta.label}</strong> is chosen. Click one of your pirates to dash forward!</div>
-      `;
-    } else if (this.selectedPirateId) {
-      html += `
-        <div class="next-step-prompt">👉 Step 2: Pick a Card to Dash</div>
-        <div class="next-step-detail">Your pirate is selected. Click any card in your hand below to leap forward, or click <strong>"Retreat (+1/+2)"</strong>!</div>
-      `;
+      mobileText = `⏳ Waiting for Captain ${activeName} to take their turn...`;
     } else {
-      // Nothing selected yet
-      if (myHand.length === 0) {
+      // It's my turn!
+      const myPlayer = this.gameState.players.find(p => p.id === this.myPlayerId);
+      const myHand = myPlayer?.hand || [];
+
+      let html = `
+        <div class="next-step-action-tag">ACTION ${4 - actionsLeft} OF 3 (${actionsLeft} LEFT)</div>
+      `;
+
+      if (this.actionMode === 'BACKWARD') {
+        if (this.selectedPirateId) {
+          html += `
+            <div class="next-step-prompt">↩️ Pirate Selected!</div>
+            <div class="next-step-detail">Retreating to nearest space with 1 or 2 pirates to gather fresh cards!</div>
+          `;
+          mobileText = '↩️ Pirate selected! Retreating to gather fresh cards...';
+        } else {
+          html += `
+            <div class="next-step-prompt">👉 Step 1: Select a Pirate to Retreat</div>
+            <div class="next-step-detail">Click any of your pirates in the tunnel. It will retreat to the nearest space holding 1 or 2 pirates and gain you 1 or 2 free cards!</div>
+          `;
+          mobileText = '↩️ Tap one of your pirates in the tunnel to retreat & draw cards!';
+        }
+      } else if (this.selectedCard && this.selectedPirateId) {
+        const cardMeta = SYMBOL_META[this.selectedCard.symbol] || { label: this.selectedCard.symbol, icon: '❓' };
         html += `
-          <div class="next-step-prompt">⚠️ Hand is Empty!</div>
-          <div class="next-step-detail">Click <strong>"Retreat (+1/+2)"</strong> then select a pirate in the tunnel to draw cards, or click <strong>"End Turn"</strong>!</div>
+          <div class="next-step-prompt">🏃 Ready to Leap!</div>
+          <div class="next-step-detail">Dashing forward with <strong>${cardMeta.icon} ${cardMeta.label}</strong> to the highlighted destination!</div>
         `;
+        mobileText = `🏃 Ready! Dashing with ${cardMeta.icon} ${cardMeta.label} to highlighted space!`;
+      } else if (this.selectedCard) {
+        const cardMeta = SYMBOL_META[this.selectedCard.symbol] || { label: this.selectedCard.symbol, icon: '❓' };
+        html += `
+          <div class="next-step-prompt">👉 Step 2: Choose a Pirate to Move</div>
+          <div class="next-step-detail">Card <strong>${cardMeta.icon} ${cardMeta.label}</strong> is chosen. Click one of your pirates to dash forward!</div>
+        `;
+        mobileText = `👉 Card ${cardMeta.icon} ${cardMeta.label} selected! Now tap your pirate on the board!`;
+      } else if (this.selectedPirateId) {
+        html += `
+          <div class="next-step-prompt">👉 Step 2: Pick a Card to Dash</div>
+          <div class="next-step-detail">Your pirate is selected. Click any card in your hand below to leap forward, or click <strong>"Retreat (+1/+2)"</strong>!</div>
+        `;
+        mobileText = '👉 Pirate selected! Tap a card in your hand below to dash forward!';
       } else {
-        html += `
-          <div class="next-step-prompt">👉 Step 1: Choose Your Move</div>
-          <div class="next-step-detail">
-            &bull; <strong>Option A:</strong> Click a <strong>Card</strong> below to Dash Forward.<br>
-            &bull; <strong>Option B:</strong> Click <strong>"Retreat (+1/+2)"</strong> to move back and draw cards.<br>
-            ${actionsLeft < 3 ? '&bull; <strong>Option C:</strong> Click <strong>"End Turn"</strong> to draw up to 6 cards.' : ''}
-          </div>
-        `;
+        // Nothing selected yet
+        if (myHand.length === 0) {
+          html += `
+            <div class="next-step-prompt">⚠️ Hand is Empty!</div>
+            <div class="next-step-detail">Click <strong>"Retreat (+1/+2)"</strong> then select a pirate in the tunnel to draw cards, or click <strong>"End Turn"</strong>!</div>
+          `;
+          mobileText = '⚠️ Hand is empty! Tap "Retreat (+1/+2)" to move back and draw cards!';
+        } else {
+          html += `
+            <div class="next-step-prompt">👉 Step 1: Choose Your Move</div>
+            <div class="next-step-detail">
+              &bull; <strong>Option A:</strong> Click a <strong>Card</strong> below to Dash Forward.<br>
+              &bull; <strong>Option B:</strong> Click <strong>"Retreat (+1/+2)"</strong> to move back and draw cards.<br>
+              ${actionsLeft < 3 ? '&bull; <strong>Option C:</strong> Click <strong>"End Turn"</strong> to draw up to 6 cards.' : ''}
+            </div>
+          `;
+          mobileText = `👉 Action ${4 - actionsLeft}/3: Tap a card to Dash, or tap "Retreat" to draw cards!`;
+        }
+      }
+
+      if (this.nextStepBody) {
+        this.nextStepBody.innerHTML = html;
       }
     }
 
-    this.nextStepBody.innerHTML = html;
+    if (this.mobileInstructionText) {
+      this.mobileInstructionText.textContent = mobileText;
+    }
   }
 
   _getColorHex(colorId) {

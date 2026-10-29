@@ -105,7 +105,7 @@ export class BoardRenderer {
       return { x: 187, y: 75, width: 340, height: 110, isJail: true };
     }
     if (spaceIndex === BOAT_INDEX) {
-      return { x: 187, y: 1350, width: 340, height: 120, isBoat: true };
+      return { x: 187, y: 1370, width: 340, height: 120, isBoat: true };
     }
 
     const pathIdx = spaceIndex - 1; // 0..35
@@ -166,7 +166,7 @@ export class BoardRenderer {
 
   _renderVerticalBoard(state) {
     const viewBoxWidth = 375;
-    const viewBoxHeight = 1440;
+    const viewBoxHeight = 1500;
 
     let svg = `
       <svg id="cartagena-board-svg" class="cartagena-board-svg vertical-board" viewBox="0 0 ${viewBoxWidth} ${viewBoxHeight}" preserveAspectRatio="xMidYMid meet">
