@@ -876,4 +876,63 @@
   .action-controls-bar {
     justify-content: center;
   }
+
+  /* Make board viewport vertically scrollable with large touchable cards on mobile! */
+  .board-main-viewport {
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    display: block !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    padding: 0.2rem 0;
+    scroll-behavior: smooth;
+  }
+
+  .cartagena-board-svg.vertical-board {
+    width: 100% !important;
+    height: auto !important;
+    min-height: 1250px;
+    display: block;
+    margin: 0 auto;
+  }
+
+  /* Mobile floating quick jump bar */
+  .mobile-board-quick-nav {
+    display: flex !important;
+    position: sticky;
+    top: 6px;
+    z-index: 10;
+    justify-content: center;
+    gap: 0.4rem;
+    margin: 0 auto 0.4rem auto;
+    width: fit-content;
+    background: rgba(11, 31, 42, 0.9);
+    backdrop-filter: blur(8px);
+    padding: 0.25rem 0.6rem;
+    border-radius: 20px;
+    border: 1px solid var(--color-ocean-teal);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  }
+
+  .m-nav-btn {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: var(--color-parchment);
+    font-family: var(--font-ui);
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 0.2rem 0.6rem;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .m-nav-btn:active, .m-nav-btn:hover {
+    background: var(--color-gold);
+    color: #1A1C22;
+  }
+}
+
+.mobile-board-quick-nav {
+  display: none;
 }

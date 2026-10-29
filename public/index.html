@@ -218,7 +218,14 @@
 
           <!-- SVG Board Center Viewport (Flex: 1, scales to fit screen) -->
           <div class="board-main-viewport" id="board-container">
-            <!-- Dynamically rendered SVG -->
+            <!-- Mobile quick navigation pill bar (Visible on phones) -->
+            <div class="mobile-board-quick-nav" id="mobile-board-quick-nav">
+              <button class="m-nav-btn" id="btn-jump-jail" type="button">🏰 Jail</button>
+              <button class="m-nav-btn" id="btn-jump-crew" type="button">🎯 My Crew</button>
+              <button class="m-nav-btn" id="btn-jump-boat" type="button">⛵ Escape Boat</button>
+            </div>
+            <!-- Dynamic SVG Wrapper -->
+            <div id="board-svg-wrapper" style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;"></div>
           </div>
 
           <!-- Compact Bottom Deck: Controls + Hand Cards -->

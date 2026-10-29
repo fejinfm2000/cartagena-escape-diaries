@@ -71,7 +71,8 @@ class CartagenaApp {
     this.lastPassTurnPlayerId = null;
 
     // Components
-    this.boardContainer = document.getElementById('board-container');
+    this.boardViewport = document.getElementById('board-container');
+    this.boardContainer = document.getElementById('board-svg-wrapper') || this.boardViewport;
     this.handContainer = document.getElementById('hand-cards-container');
     this.opponentsContainer = document.getElementById('opponents-container');
     this.turnBanner = document.getElementById('turn-banner');
@@ -279,6 +280,43 @@ class CartagenaApp {
       }
       this.modals.serverConfig?.classList.remove('active');
       await this._checkServerStatus();
+    });
+
+    // Mobile Board Quick Jump Navigation
+    document.getElementById('btn-jump-jail')?.addEventListener('click', () => {
+      this.boardViewport?.scrollTo({ top: 0, behavior: 'smooth' });
+      this.audio.playPop();
+    });
+
+    document.getElementById('btn-jump-boat')?.addEventListener('click', () => {
+      if (this.boardViewport) {
+        this.boardViewport.scrollTo({ top: this.boardViewport.scrollHeight, behavior: 'smooth' });
+      }
+      this.audio.playPop();
+    });
+
+    document.getElementById('btn-jump-crew')?.addEventListener('click', () => {
+      if (!this.boardViewport || !this.gameState) return;
+      const myPirates = this.gameState.players.find(p => p.id === this.myPlayerId)?.pirates || [];
+      const onPath = myPirates.filter(p => p.position >= 1 && p.position <= 36);
+      if (onPath.length > 0) {
+        const targetPos = onPath[0].position;
+        const targetEl = document.getElementById(`space-group-${targetPos}`);
+        if (targetEl) {
+          const rect = targetEl.getBoundingClientRect();
+          const parentRect = this.boardViewport.getBoundingClientRect();
+          this.boardViewport.scrollBy({ top: rect.top - parentRect.top - 80, behavior: 'smooth' });
+          this.audio.playPop();
+          return;
+        }
+      }
+      const onBoat = myPirates.filter(p => p.position === 37);
+      if (onBoat.length === myPirates.length && myPirates.length > 0) {
+        this.boardViewport.scrollTo({ top: this.boardViewport.scrollHeight, behavior: 'smooth' });
+      } else {
+        this.boardViewport.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+      this.audio.playPop();
     });
 
     // Close Modals
