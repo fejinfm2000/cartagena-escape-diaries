@@ -436,6 +436,51 @@ export class BoardRenderer {
     `;
   }
 
+  _renderPiratesOnSpace(pirateIds, isVertical = false) {
+    if (!pirateIds || pirateIds.length === 0) return '';
+    const count = pirateIds.length;
+
+    // Up to 3 pirates neatly docked across the bottom half of the rectangle card
+    const offsets = count === 1 ? [{ x: 0, y: 18 }] :
+                    count === 2 ? [{ x: -24, y: 18 }, { x: 24, y: 18 }] :
+                    [{ x: -28, y: 18 }, { x: 0, y: 18 }, { x: 28, y: 18 }];
+    const size = count === 3 ? 11.5 : count === 2 ? 12.5 : 13;
+
+    return pirateIds.map((pid, idx) => {
+      const pos = offsets[idx] || { x: 0, y: 18 };
+      return this._renderPirateToken(pid, pos.x, pos.y, size);
+    }).join('');
+  }
+
+  _renderJailPirates(pirateIds, isVertical = false) {
+    if (!pirateIds || pirateIds.length === 0) return '';
+    if (isVertical) {
+      // Mobile vertical jail: 6 columns across width 330
+      const cols = 6;
+      const spacingX = 46;
+      const spacingY = 32;
+      return pirateIds.map((pid, idx) => {
+        const row = Math.floor(idx / cols);
+        const col = idx % cols;
+        const x = (col - (cols - 1) / 2) * spacingX;
+        const y = (row - 0.5) * spacingY;
+        return this._renderPirateToken(pid, x, y, 14);
+      }).join('');
+    } else {
+      // Laptop horizontal jail: 3 columns across width 120
+      const cols = 3;
+      const spacingX = 32;
+      const spacingY = 30;
+      return pirateIds.map((pid, idx) => {
+        const row = Math.floor(idx / cols);
+        const col = idx % cols;
+        const x = (col - (cols - 1) / 2) * spacingX;
+        const y = (row - 2) * spacingY + 10;
+        return this._renderPirateToken(pid, x, y, 13);
+      }).join('');
+    }
+  }
+
   _renderBoatPiratesByPlayer(isVertical = false) {
     const players = this.currentState?.players || [];
     const target = this.currentState?.piratesPerPlayer || 6;
